@@ -1,0 +1,30 @@
+{
+    "name": "thiago-vieira/saci",
+    "description": "A modern, elegant Laravel debugger that shows loaded views and their data in a floating bar",
+    "type": "library",
+    "keywords": ["laravel", "debug", "blade", "tracer", "views", "development", "saci"],
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "ThiagoVieira\\Saci\\": "src/"
+        }
+    },
+    "require": {
+        "php": "^7.3|^8.0|^8.1|^8.2|^8.3",
+        "laravel/framework": "^9.0|^10.0|^11.0|^12.0"
+    },
+    "authors": [
+        {
+            "name": "Thiago Vieira",
+            "email": "thiagomrvieira@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "extra": {
+        "laravel": {
+            "providers": [
+                "ThiagoVieira\\Saci\\SaciServiceProvider"
+            ]
+        }
+    }
+}
