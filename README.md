@@ -62,7 +62,7 @@ Saci includes built-in performance monitoring that tracks the loading time of ea
 - **Configurable**: Can be enabled/disabled via `SACI_TRACK_PERFORMANCE` environment variable
 
 Example output:
-![Saci Debug Bar](https://raw.githubusercontent.com/thiago-vieira/saci/main/src/assets/images/saci-screenshot.png)
+![Saci Debug Bar](https://github.com/thiagomrvieira/saci/blob/main/src/assets/images/saci-screenshot.png)
 
 *Saci debug bar showing view loading times and data types*
 
