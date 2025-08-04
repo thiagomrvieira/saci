@@ -14,11 +14,17 @@ class TemplateTracker
     protected Collection $templates;
 
     /**
+     * Track view start times.
+     */
+    protected Collection $viewStartTimes;
+
+    /**
      * Create a new template tracker instance.
      */
     public function __construct()
     {
         $this->templates = collect();
+        $this->viewStartTimes = collect();
     }
 
     /**
@@ -27,14 +33,39 @@ class TemplateTracker
     public function register(): void
     {
         View::creator('*', function ($view) {
-            $this->trackView($view);
+            $this->trackViewStart($view);
+        });
+
+        View::composer('*', function ($view) {
+            $this->trackViewEnd($view);
         });
     }
 
     /**
-     * Track a single view.
+     * Track view start time.
      */
-    protected function trackView($view): void
+    protected function trackViewStart($view): void
+    {
+        if (!SaciConfig::isPerformanceTrackingEnabled()) {
+            return;
+        }
+
+        $path = $view->getPath();
+
+        if (!$path) {
+            return;
+        }
+
+        $relativePath = str_replace(base_path() . '/', '', $path);
+
+        // Store start time for this view
+        $this->viewStartTimes->put($relativePath, microtime(true));
+    }
+
+    /**
+     * Track view end time and calculate duration.
+     */
+    protected function trackViewEnd($view): void
     {
         $path = $view->getPath();
 
@@ -44,9 +75,23 @@ class TemplateTracker
 
         $relativePath = str_replace(base_path() . '/', '', $path);
 
+        if (SaciConfig::isPerformanceTrackingEnabled()) {
+            $endTime = microtime(true);
+
+            // Get start time and calculate duration
+            $startTime = $this->viewStartTimes->get($relativePath);
+            $duration = $startTime ? ($endTime - $startTime) * 1000 : 0; // Convert to milliseconds
+
+            // Remove start time from tracking
+            $this->viewStartTimes->forget($relativePath);
+        } else {
+            $duration = 0;
+        }
+
         $this->templates->push([
             'path' => $relativePath,
-            'data' => $this->filterData($view->getData())
+            'data' => $this->filterData($view->getData()),
+            'duration' => round($duration, 2)
         ]);
     }
 
@@ -57,8 +102,11 @@ class TemplateTracker
     {
         $hiddenFields = SaciConfig::getHiddenFields();
 
+        // Laravel global variables that should be hidden
+        $laravelGlobals = ['__env', 'app', 'errors', '__data', '__path'];
+
         return collect($data)
-            ->reject(fn($value, $key) => in_array($key, $hiddenFields))
+            ->reject(fn($value, $key) => in_array($key, $hiddenFields) || in_array($key, $laravelGlobals))
             ->map(fn($value) => gettype($value))
             ->toArray();
     }

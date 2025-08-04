@@ -54,5 +54,15 @@ return [
         'position' => 'bottom',
         'theme' => 'dark',
         'max_height' => '30vh'
-    ]
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Performance Tracking
+    |--------------------------------------------------------------------------
+    |
+    | Enable or disable view loading time tracking.
+    |
+    */
+    'track_performance' => env('SACI_TRACK_PERFORMANCE', true)
 ];

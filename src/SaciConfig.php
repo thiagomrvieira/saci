@@ -85,4 +85,12 @@ class SaciConfig
     {
         return self::getUISettings()['max_height'] ?? '30vh';
     }
+
+    /**
+     * Check if performance tracking is enabled.
+     */
+    public static function isPerformanceTrackingEnabled(): bool
+    {
+        return self::get('track_performance', true);
+    }
 }

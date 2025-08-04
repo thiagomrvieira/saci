@@ -4,6 +4,12 @@
             <span>Saci</span>
             <span style="margin-left: 10px; color: #a0aec0; font-size: 0.9em;">v{{ $version }} by {{ $author }}</span>
             <span style="margin-left: 10px; color: #68d391;">Views ({{ $total }})</span>
+            @php
+                $totalDuration = collect($templates)->sum('duration');
+            @endphp
+            @if($totalDuration > 0)
+            <span style="margin-left: 10px; color: #fc8181;">{{ $totalDuration }}ms</span>
+            @endif
         </div>
         <div id="saci-arrow" style="color: #a0aec0;">▼</div>
     </div>
@@ -14,9 +20,16 @@
             <li style="padding: 8px 0; border-bottom: 1px solid #2d3748;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span style="color: #68d391; font-family: 'Fira Code', monospace;">{{ $template['path'] }}</span>
-                    <span style="color: #f6ad55; font-size: 0.8em; background: #2d3748; padding: 2px 6px; border-radius: 4px;">
-                        {{ count($template['data']) }} vars
-                    </span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span style="color: #f6ad55; font-size: 0.8em; background: #2d3748; padding: 2px 6px; border-radius: 4px;">
+                            {{ count($template['data']) }} vars
+                        </span>
+                        @if(isset($template['duration']))
+                        <span style="color: #fc8181; font-size: 0.8em; background: #2d3748; padding: 2px 6px; border-radius: 4px;">
+                            {{ $template['duration'] }}ms
+                        </span>
+                        @endif
+                    </div>
                 </div>
                 @if(!empty($template['data']))
                 <div style="margin-top: 4px; font-size: 0.8em; color: #a0aec0;">
