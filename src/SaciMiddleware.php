@@ -4,7 +4,7 @@ namespace ThiagoVieira\Saci;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use ThiagoVieira\Saci\SaciConfig;
 use ThiagoVieira\Saci\TemplateTracker;
 use ThiagoVieira\Saci\DebugBarInjector;
@@ -43,7 +43,7 @@ class SaciMiddleware
     /**
      * Handle an incoming request.
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next): SymfonyResponse
     {
         if (!$this->validator->shouldTrace($request)) {
             return $next($request);

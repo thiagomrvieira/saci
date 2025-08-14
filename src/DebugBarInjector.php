@@ -2,7 +2,7 @@
 
 namespace ThiagoVieira\Saci;
 
-use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Log;
 use ThiagoVieira\Saci\SaciInfo;
@@ -25,7 +25,7 @@ class DebugBarInjector
     /**
      * Inject the debug bar into the response.
      */
-    public function inject(Response $response): Response
+    public function inject(SymfonyResponse $response): SymfonyResponse
     {
         $content = $response->getContent();
 
