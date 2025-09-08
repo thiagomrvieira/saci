@@ -79,6 +79,18 @@ class SaciConfig
     }
 
     /**
+     * Get validated UI theme name.
+     * Falls back to 'default' when an invalid value is provided.
+     */
+    public static function getTheme(): string
+    {
+        $rawTheme = strtolower((string) self::getUITheme());
+        $allowedThemes = ['default', 'dark', 'minimal'];
+
+        return in_array($rawTheme, $allowedThemes, true) ? $rawTheme : 'default';
+    }
+
+    /**
      * Get UI max height.
      */
     public static function getUIMaxHeight(): string
@@ -92,5 +104,21 @@ class SaciConfig
     public static function isPerformanceTrackingEnabled(): bool
     {
         return self::get('track_performance', true);
+    }
+
+    /**
+     * Get transparency (alpha) for the bar backdrop.
+     * Clamped between 0 and 1.
+     */
+    public static function getTransparency(): float
+    {
+        $alpha = (float) (self::getUISettings()['transparency'] ?? 1.0);
+        if ($alpha < 0.0) {
+            return 0.0;
+        }
+        if ($alpha > 1.0) {
+            return 1.0;
+        }
+        return $alpha;
     }
 }

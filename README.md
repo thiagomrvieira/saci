@@ -14,6 +14,17 @@ composer require thiago-vieira/saci
 php artisan vendor:publish --tag=saci-config
 ```
 
+3. Publish the assets (CSS) for the debug bar UI (optional but recommended):
+```bash
+php artisan vendor:publish --tag=saci-assets
+```
+This will publish the CSS to `public/vendor/saci/css/saci.css`.
+
+If you update the package and need the latest CSS, republish with force:
+```bash
+php artisan vendor:publish --tag=saci-assets --force
+```
+
 ## Configuration
 
 The package is automatically configured, but you can customize the settings by editing the `config/saci.php` file:
@@ -26,10 +37,16 @@ return [
     'hide_data_fields' => ['password', 'token', 'secret', 'api_key', 'credentials'],
     'ui' => [
         'position' => 'bottom',
-        'theme' => 'dark',
+        'theme' => env('SACI_THEME', 'default'), // 'default' (ex-dark), 'dark' (ex-minimal), 'minimal'
         'max_height' => '30vh'
     ],
-    'track_performance' => env('SACI_TRACK_PERFORMANCE', true)
+    'track_performance' => env('SACI_TRACK_PERFORMANCE', true),
+    // Dump/preview normalization (limits to keep the UI fast and readable)
+    'dump' => [
+        'max_depth' => 5,
+        'max_items' => 10,
+        'max_string_length' => 200,
+    ],
 ];
 ```
 
@@ -40,9 +57,10 @@ After installation, Saci will be automatically activated in development environm
 ### Features
 
 - Shows all loaded Blade views
-- Displays data types passed to each view
+- Displays variables (type, preview and safe pretty-printed values)
 - **View loading time tracking** (performance monitoring)
 - Responsive and collapsible interface
+- Persisted collapsed/expanded state across reloads
 - Configurable for different environments
 - Sensitive data protection
 
@@ -51,6 +69,12 @@ After installation, Saci will be automatically activated in development environm
 ```env
 SACI_ENABLED=true
 SACI_TRACK_PERFORMANCE=true
+# Theme options
+# - default
+# - dark
+# - minimal
+SACI_THEME=default
+SACI_TRANSPARENCY=0.85
 ```
 
 ### Performance Tracking
@@ -62,9 +86,22 @@ Saci includes built-in performance monitoring that tracks the loading time of ea
 - **Configurable**: Can be enabled/disabled via `SACI_TRACK_PERFORMANCE` environment variable
 
 Example output:
-![Saci Debug Bar](https://github.com/thiagomrvieira/saci/blob/main/src/assets/images/saci-screenshot.png)
+![Saci Debug Bar](https://github.com/thiagomrvieira/saci/blob/main/src/assets/images/saci-default.png)
+Dark theme:
+![Saci Debug Bar](https://github.com/thiagomrvieira/saci/blob/main/src/assets/images/saci-dark.png)
+Minimal theme:
+![Saci Debug Bar](https://github.com/thiagomrvieira/saci/blob/main/src/assets/images/saci-minimal.png)
 
 *Saci debug bar showing view loading times and data types*
+
+## Versioning
+
+This project follows SemVer (MAJOR.MINOR.PATCH):
+- BREAKING changes → MAJOR (e.g. 2.0.0)
+- Backward-compatible features → MINOR (e.g. 1.1.0)
+- Backward-compatible bug fixes → PATCH (e.g. 1.0.1)
+
+Recent changes include UI improvements, external CSS, variable value previews and state persistence. They are backward-compatible and qualify as a MINOR release bump (e.g., from 1.0.0 to 1.1.0).
 
 ## Development
 

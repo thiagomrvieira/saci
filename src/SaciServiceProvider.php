@@ -31,6 +31,7 @@ class SaciServiceProvider extends ServiceProvider
 
         $this->registerMiddleware();
         $this->publishConfig();
+        $this->publishAssets();
     }
 
     /**
@@ -68,5 +69,19 @@ class SaciServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/Resources/config/saci.php' => config_path('saci.php'),
         ], 'saci-config');
+    }
+
+    /**
+     * Publish public assets (CSS/JS/images).
+     */
+    protected function publishAssets(): void
+    {
+        if (!$this->app->runningInConsole()) {
+            return;
+        }
+
+        $this->publishes([
+            __DIR__.'/Resources/assets' => public_path('vendor/saci'),
+        ], 'saci-assets');
     }
 }

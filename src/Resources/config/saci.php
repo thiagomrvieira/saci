@@ -52,8 +52,9 @@ return [
     */
     'ui' => [
         'position' => 'bottom',
-        'theme' => 'dark',
-        'max_height' => '30vh'
+        'theme' => env('SACI_THEME', 'default'),
+        'max_height' => '30vh',
+        'transparency' => env('SACI_TRANSPARENCY', 1.0),
     ],
 
     /*
