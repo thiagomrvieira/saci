@@ -1,6 +1,6 @@
 <div
     id="saci-header"
-    @click.stop="if(window && (window.saciIsResizing || window.saciDidResize)){ window.saciDidResize=false; return; } toggle()"
+    @click.stop="if(Alpine.store('saci').isResizing || Alpine.store('saci').didResize){ Alpine.store('saci').didResize=false; return; } toggle()"
     @keydown.enter.prevent="toggle()"
     @keydown.space.prevent="toggle()"
     tabindex="0"

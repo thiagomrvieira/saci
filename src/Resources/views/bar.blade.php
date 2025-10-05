@@ -14,7 +14,7 @@
 
 <div
     id="saci"
-    x-data="{collapsed:false,init(){try{this.collapsed=localStorage.getItem('saci.collapsed')==='1'}catch(e){}},toggle(){this.collapsed=!this.collapsed;try{localStorage.setItem('saci.collapsed',this.collapsed?'1':'0')}catch(e){}},expandAll(){window.dispatchEvent(new CustomEvent('saci-expand-all'))},collapseAll(){window.dispatchEvent(new CustomEvent('saci-collapse-all'))}}"
+    x-data="saciBar()"
     :class="{
         'saci-collapsed': collapsed,
         'saci-top': '{{ config('saci.ui.position', 'bottom') }}' === 'top',

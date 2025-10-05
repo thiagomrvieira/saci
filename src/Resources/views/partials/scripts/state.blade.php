@@ -1,11 +1,13 @@
 <script>
-    (function() {
+    document.addEventListener('alpine:initialized', () => {
+        const store = Alpine.store('saci');
+        if (!store) return;
+
         // Restore per-card expanded state
         document.querySelectorAll('#saci-content .saci-card').forEach(card => {
             const key = card.getAttribute('data-saci-card-key');
             if (!key) return;
-            let open = null;
-            try { open = localStorage.getItem('saci.card.' + key); } catch(e) {}
+            const open = store.get('saci.card.' + key);
             if (open === '1') {
                 const content = card.querySelector('.saci-card-content');
                 const toggle = card.querySelector('.saci-card-toggle');
@@ -24,8 +26,7 @@
             card.querySelectorAll('tr[data-saci-var-key]').forEach(row => {
                 const varKey = row.getAttribute('data-saci-var-key');
                 if (!varKey) return;
-                let open = null;
-                try { open = localStorage.getItem('saci.var.' + cardKey + '.' + varKey); } catch(e) {}
+                const open = store.get('saci.var.' + cardKey + '.' + varKey);
                 if (open === '1') {
                     const valueRow = row.nextElementSibling;
                     const btn = row.querySelector('.saci-toggle-btn');
@@ -36,6 +37,6 @@
                 }
             });
         });
-    })();
+    });
 </script>
 

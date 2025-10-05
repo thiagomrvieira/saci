@@ -60,6 +60,7 @@ return [
 ## Usage
 
 After installation, Saci will be automatically activated in development environments. It will show a floating bar at the bottom of the page with information about loaded views.
+You can drag the bar header to resize its height. The bar height, collapsed/expanded state, and the open state of each view and variable are persisted across reloads (via localStorage).
 
 ### Features
 
@@ -67,7 +68,8 @@ After installation, Saci will be automatically activated in development environm
 - Displays variables (type, preview and safe pretty-printed values)
 - **View loading time tracking** (performance monitoring)
 - Responsive and collapsible interface
-- Persisted collapsed/expanded state across reloads
+- Resizable debug bar (drag-to-resize)
+- Persistent UI state across reloads (collapsed, bar height, per-card and per-variable)
 - Configurable for different environments
 - Sensitive data protection
 
