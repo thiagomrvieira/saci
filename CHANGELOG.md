@@ -32,4 +32,20 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 ### Added
 - Initial release.
 
+## [2.0.0] - 2025-10-05
+### Changed
+- Require PHP >= 8.0 (typed properties, `str_contains`).
+- Refined UI styles: reduced border radii, softer shadows, cleaner cards.
+- Alpine-first JS refactor: component + store, modular partials.
+- Drag-to-resize header with persisted height; smoother card animations.
+- Persistent UI state across reloads (collapsed, height, per-card and per-variable).
+
+### Fixed
+- Avoid toggle after drag (click-guard) and restore height after expand.
+- Show resize cursor only when expanded.
+
+### Notes
+- Assets publish remains optional; inline CSS fallback ensures zero-touch install.
+- Recommended to republish assets to get the latest CSS: `php artisan vendor:publish --tag=saci-assets --force`.
+
 
