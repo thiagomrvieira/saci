@@ -1,6 +1,6 @@
 <div
     id="saci-header"
-    @click.stop="toggle()"
+    @click.stop="if(window && (window.saciIsResizing || window.saciDidResize)){ window.saciDidResize=false; return; } toggle()"
     @keydown.enter.prevent="toggle()"
     @keydown.space.prevent="toggle()"
     tabindex="0"

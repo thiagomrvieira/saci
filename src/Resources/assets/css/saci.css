@@ -27,7 +27,7 @@
     background-image: none;
     background-color: #0f0f10;
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 8px;
+    border-radius: 6px;
     box-shadow: none;
 }
 #saci.saci-theme-dark .saci-card .saci-path { color: #e5e7eb; }
@@ -36,10 +36,10 @@
     color: #e5e7eb;
     border: 1px solid rgba(255,255,255,0.16);
     padding: 2px 6px;
-    border-radius: 6px;
+    border-radius: 4px;
 }
 #saci.saci-theme-dark .saci-badge-danger { color: #fca5a5; border-color: rgba(248,113,113,0.30); }
-#saci.saci-theme-dark .saci-toggle-btn { background: transparent; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.16); border-radius: 6px; }
+#saci.saci-theme-dark .saci-toggle-btn { background: transparent; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.16); border-radius: 4px; }
 #saci.saci-theme-dark .saci-table thead tr { border-bottom: 1px solid rgba(255,255,255,0.08); color: #e5e7eb; }
 #saci.saci-theme-dark .saci-table .saci-actions { box-shadow: -1px 0 0 rgba(255,255,255,0.06); }
 #saci.saci-theme-dark .saci-pre { background: #0b0b0b; border: 1px solid rgba(255,255,255,0.06); }
@@ -52,7 +52,7 @@
 #saci.saci-theme-minimal .saci-card {
     background: transparent;
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 8px;
+    border-radius: 6px;
     box-shadow: none;
 }
 #saci.saci-theme-minimal .saci-card .saci-path { color: #e5e7eb; }
@@ -61,10 +61,10 @@
     color: #cbd5e0;
     border: 1px solid rgba(255,255,255,0.12);
     padding: 2px 8px;
-    border-radius: 8px;
+    border-radius: 6px;
 }
 #saci.saci-theme-minimal .saci-badge-danger { color: #fca5a5; border-color: rgba(248,113,113,0.28); }
-#saci.saci-theme-minimal .saci-toggle-btn { background: transparent; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.16); border-radius: 8px; }
+#saci.saci-theme-minimal .saci-toggle-btn { background: transparent; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.16); border-radius: 6px; }
 #saci.saci-theme-minimal .saci-table thead tr { border-bottom: 1px solid rgba(255,255,255,0.08); color: #d1d5db; }
 #saci.saci-theme-minimal .saci-table .saci-actions { box-shadow: -1px 0 0 rgba(255,255,255,0.06); }
 #saci.saci-theme-minimal .saci-pre { background: #0a0a0a; border: 1px solid rgba(255,255,255,0.06); }
@@ -103,10 +103,10 @@
     padding: 10px;
     margin-bottom: 10px;
     background-color: #0f172a;
-    background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    background-image: none;
     border: 1px solid rgba(148,163,184,0.12);
-    border-radius: 10px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.04);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 .saci-card-toggle {
@@ -133,14 +133,14 @@
 .saci-preview { padding-right: 110px; color: #a0aec0; word-break: break-word; white-space: normal; }
 .saci-var-name { color: #f6e05e; font-family: 'Fira Code', monospace; }
 .saci-var-type { color: #b794f4; }
-.saci-toggle-btn { background: #2d3748; color: #e2e8f0; border: none; padding: 2px 8px; border-radius: 6px; cursor: pointer; }
+.saci-toggle-btn { background: #2d3748; color: #e2e8f0; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; }
 
 .saci-pre {
     margin: 0;
     background: #111827;
     color: #e5e7eb;
     padding: 8px;
-    border-radius: 6px;
+    border-radius: 4px;
     max-height: 180px;
     overflow-y: auto;
     overflow-x: hidden;
@@ -149,10 +149,35 @@
     overflow-wrap: anywhere;
 }
 
-.saci-btn-ghost { background: transparent; color: #cbd5e0; border: 1px solid rgba(148,163,184,0.18); padding: 2px 6px; border-radius: 6px; cursor: pointer; font-size: 0.8em; opacity: 0.9; }
+.saci-btn-ghost { background: transparent; color: #cbd5e0; border: 1px solid rgba(148,163,184,0.18); padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.8em; opacity: 0.9; }
 
 /* Header spacing and controls */
 #saci-header .saci-sep { margin-left: 10px; }
 #saci-header .saci-duration { color: #fc8181; margin-left: 10px; }
 #saci-controls-buttons { display: flex; gap: 8px; align-items: center; }
+
+/* Show resize cursor only when expanded */
+#saci:not(.saci-collapsed) #saci-header { cursor: ns-resize; }
+
+/* Fixed-width badges for alignment */
+.saci-badge-vars, .saci-badge-ms {
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+.saci-badge-vars { min-width: 84px; }
+.saci-badge-ms { min-width: 72px; }
+
+/* Soft transitions for card content */
+.saci-card-content {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 240ms ease, opacity 180ms ease;
+}
+.saci-card.is-open .saci-card-content {
+    max-height: 1000px;
+    opacity: 1;
+}
 

@@ -11,7 +11,7 @@
     </thead>
     <tbody>
     @foreach($data as $key => $info)
-        <tr>
+        <tr data-saci-var-key="{{ $key }}">
             <td class="saci-var-name">{{ $key }}</td>
             <td class="saci-var-type">{{ $info['type'] ?? gettype($info) }}</td>
             <td class="saci-preview">
@@ -27,6 +27,12 @@
                         const hidden = valueRow.style.display === 'none';
                         valueRow.style.display = hidden ? 'table-row' : 'none';
                         $el.textContent = hidden ? 'Hide' : 'Show';
+                        try {
+                            const card = $el.closest('.saci-card');
+                            const cardKey = card ? card.getAttribute('data-saci-card-key') : '';
+                            const varKey = row.getAttribute('data-saci-var-key') || '';
+                            if (cardKey && varKey) localStorage.setItem('saci.var.' + cardKey + '.' + varKey, hidden ? '1' : '0');
+                        } catch(e) {}
                     "
                 >Show</button>
             </td>

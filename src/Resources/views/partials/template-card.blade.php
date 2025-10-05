@@ -1,4 +1,4 @@
-<li class="saci-card">
+<li class="saci-card" data-saci-card-key="{{ $template['path'] }}">
     <div
         class="saci-card-toggle"
         role="button"
@@ -10,19 +10,31 @@
             const contentEl = container.querySelector('.saci-card-content');
             if (!contentEl) return;
             const expanded = header.getAttribute('aria-expanded') === 'true';
-            contentEl.style.display = expanded ? 'none' : 'block';
+            if (expanded) {
+                container.classList.remove('is-open');
+                // allow transition to animate before display change
+                setTimeout(() => { contentEl.style.display = 'none'; }, 240);
+            } else {
+                contentEl.style.display = 'block';
+                // next tick to trigger CSS transition
+                requestAnimationFrame(() => container.classList.add('is-open'));
+            }
             header.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+            try {
+                const key = container.getAttribute('data-saci-card-key');
+                if (key) localStorage.setItem('saci.card.' + key, expanded ? '0' : '1');
+            } catch(e) {}
         "
         @keydown.enter.prevent="$el.click()"
         @keydown.space.prevent="$el.click()"
     >
         <span class="saci-path">{{ $template['path'] }}</span>
         <div class="saci-meta">
-            <span class="saci-badge">
+            <span class="saci-badge saci-badge-vars">
                 {{ count($template['data']) }} vars
             </span>
             @if(isset($template['duration']))
-                <span class="saci-badge saci-badge-danger">
+                <span class="saci-badge saci-badge-danger saci-badge-ms">
                     {{ $template['duration'] }}ms
                 </span>
             @endif
