@@ -1,4 +1,11 @@
-<link rel="stylesheet" href="{{ asset('vendor/saci/css/saci.css') }}">
+@php
+    $publishedCssPath = public_path('vendor/saci/css/saci.css');
+@endphp
+@if(file_exists($publishedCssPath))
+    <link rel="stylesheet" href="{{ asset('vendor/saci/css/saci.css') }}">
+@elseif(!empty($inlineCss ?? null))
+    <style>{{ $inlineCss }}</style>
+@endif
 <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
 
 @php

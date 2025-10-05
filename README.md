@@ -2,6 +2,11 @@
 
 A modern, elegant Laravel debugger that shows loaded views and their data in a floating bar.
 
+## Requirements
+
+- PHP >= 8.0
+- Laravel 9–12
+
 ## Installation
 
 1. Install the package via Composer:
@@ -9,16 +14,18 @@ A modern, elegant Laravel debugger that shows loaded views and their data in a f
 composer require thiago-vieira/saci
 ```
 
+Saci works immediately after installation. If you do not publish the assets, the CSS will be served inline automatically as a fallback.
+
 2. Publish the configuration file (optional):
 ```bash
 php artisan vendor:publish --tag=saci-config
 ```
 
-3. Publish the assets (CSS) for the debug bar UI (optional but recommended):
+3. Publish the assets (CSS) for the debug bar UI (optional but recommended for production/cache/CDN):
 ```bash
 php artisan vendor:publish --tag=saci-assets
 ```
-This will publish the CSS to `public/vendor/saci/css/saci.css`.
+This publishes the CSS to `public/vendor/saci/css/saci.css`.
 
 If you update the package and need the latest CSS, republish with force:
 ```bash
