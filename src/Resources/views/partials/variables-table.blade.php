@@ -33,7 +33,6 @@
     )) ?: 'null'
 }}</pre>
             </td>
-
         </tr>
     @endforeach
     </tbody>

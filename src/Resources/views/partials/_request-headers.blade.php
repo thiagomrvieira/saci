@@ -1,0 +1,1 @@
+<pre class="saci-pre">{{ (json_encode(($req['headers_all'] ?? []), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE)) ?: '{}' }}</pre>

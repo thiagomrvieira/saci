@@ -2,6 +2,8 @@
 
 namespace ThiagoVieira\Saci;
 
+use Composer\InstalledVersions;
+
 class SaciInfo
 {
     /**
@@ -29,6 +31,16 @@ class SaciInfo
      */
     public static function getVersion(): string
     {
+        try {
+            if (class_exists(InstalledVersions::class)) {
+                $v = InstalledVersions::getPrettyVersion('thiago-vieira/saci');
+                if (is_string($v) && $v !== '') {
+                    return $v;
+                }
+            }
+        } catch (\Throwable $e) {
+            // ignore and fallback
+        }
         return self::VERSION;
     }
 

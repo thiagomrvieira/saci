@@ -56,8 +56,32 @@
                 }
             },
             saveTab() { try { localStorage.setItem('saci.tab', this.tab); } catch (e) {} },
-            expandAll() { window.dispatchEvent(new CustomEvent('saci-expand-all')); },
-            collapseAll() { window.dispatchEvent(new CustomEvent('saci-collapse-all')); }
+            expandAll() {
+                const content = document.getElementById('saci-content');
+                if (!content) return;
+                content.querySelectorAll('.saci-value-row').forEach(r => r.style.display = 'table-row');
+                content.querySelectorAll('.saci-card').forEach(card => {
+                    const c = card.querySelector('.saci-card-content');
+                    const t = card.querySelector('.saci-card-toggle');
+                    if (!c || !t) return;
+                    c.style.display = 'block';
+                    requestAnimationFrame(() => card.classList.add('is-open'));
+                    t.setAttribute('aria-expanded', 'true');
+                });
+            },
+            collapseAll() {
+                const content = document.getElementById('saci-content');
+                if (!content) return;
+                content.querySelectorAll('.saci-value-row').forEach(r => r.style.display = 'none');
+                content.querySelectorAll('.saci-card').forEach(card => {
+                    const c = card.querySelector('.saci-card-content');
+                    const t = card.querySelector('.saci-card-toggle');
+                    if (!c || !t) return;
+                    card.classList.remove('is-open');
+                    setTimeout(() => { c.style.display = 'none'; }, 240);
+                    t.setAttribute('aria-expanded', 'false');
+                });
+            }
         };
     };
 </script>
