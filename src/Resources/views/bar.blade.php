@@ -4,7 +4,7 @@
 @if(file_exists($publishedCssPath))
     <link rel="stylesheet" href="{{ asset('vendor/saci/css/saci.css') }}">
 @elseif(!empty($inlineCss ?? null))
-    <style>{{ $inlineCss }}</style>
+    <style>{!! $inlineCss !!}</style>
 @endif
 <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
 
@@ -15,6 +15,7 @@
 <div
     id="saci"
     x-data="saciBar()"
+    class="saci-{{ config('saci.ui.position', 'bottom') === 'top' ? 'top' : 'bottom' }} saci-theme-{{ $theme }}"
     :class="{
         'saci-collapsed': collapsed,
         'saci-top': '{{ config('saci.ui.position', 'bottom') }}' === 'top',
