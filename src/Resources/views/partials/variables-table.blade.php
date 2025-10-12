@@ -38,10 +38,13 @@
             </td>
         </tr>
         <tr class="saci-value-row" style="display:none;">
-            <td colspan="3" style="padding: 6px 4px;">
-<pre class="saci-pre">
-{{ json_encode(is_array($info) ? ($info['value'] ?? null) : $info, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}
-</pre>
+            <td colspan="3" style="padding: 6px 4px; position: relative;">
+<pre class="saci-pre">{{
+    json_encode(
+        is_array($info) ? ($info['value'] ?? null) : $info,
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE
+    )
+}}</pre>
             </td>
             <td class="saci-actions"></td>
         </tr>

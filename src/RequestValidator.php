@@ -13,7 +13,6 @@ class RequestValidator
     public function shouldTrace(Request $request): bool
     {
         return SaciConfig::isEnabled() &&
-               $this->isValidEnvironment() &&
                $request->acceptsHtml() &&
                !$request->ajax();
     }
@@ -23,8 +22,7 @@ class RequestValidator
      */
     protected function isValidEnvironment(): bool
     {
-        $environments = SaciConfig::getAllowedEnvironments();
-
-        return in_array(App::environment(), $environments);
+        // Environment is no longer used to gate visibility; retained for BC if referenced elsewhere
+        return true;
     }
 }

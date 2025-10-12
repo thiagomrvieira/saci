@@ -49,3 +49,17 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 - Recommended to republish assets to get the latest CSS: `php artisan vendor:publish --tag=saci-assets --force`.
 
 
+## [2.0.1] - 2025-10-12
+### Fixed
+- Ensure inline CSS is rendered unescaped in `saci::bar` to avoid broken styles when assets are not published.
+- Add server-side default classes for theme and position to stabilize initial render before Alpine initializes.
+
+## [2.0.2] - 2025-10-12
+### Changed
+- Visibility rule: the bar now renders whenever `SACI_ENABLED=true`, independent of `APP_ENV`.
+
+### Notes
+- Consider the security implications before enabling in production; sensitive field filtering remains in place.
+- No breaking changes. Safe patch update.
+
+

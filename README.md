@@ -16,6 +16,8 @@ composer require thiago-vieira/saci
 
 Saci works immediately after installation. If you do not publish the assets, the CSS will be served inline automatically as a fallback.
 
+By default, the bar is shown whenever `SACI_ENABLED=true`, regardless of the current environment.
+
 2. Publish the configuration file (optional):
 ```bash
 php artisan vendor:publish --tag=saci-config
@@ -59,7 +61,7 @@ return [
 
 ## Usage
 
-After installation, Saci will be automatically activated in development environments. It will show a floating bar at the bottom of the page with information about loaded views.
+After installation, Saci will be automatically activated when `SACI_ENABLED=true`. It will show a floating bar at the bottom of the page with information about loaded views.
 You can drag the bar header to resize its height. The bar height, collapsed/expanded state, and the open state of each view and variable are persisted across reloads (via localStorage).
 
 ### Features
