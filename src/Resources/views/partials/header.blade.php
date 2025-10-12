@@ -9,7 +9,10 @@
 >
     <div class="saci-title">
         <span>Saci</span>
-        <span class="saci-count saci-sep">Views ({{ $total }})</span>
+        <div class="saci-sep" style="display:inline-flex; gap: 8px; align-items: center; margin-left: 10px;">
+            <button class="saci-btn-ghost" :class="{ 'saci-btn-active': (tab==='views') }" @click.stop="tab='views'; saveTab()">Views ({{ $total }})</button>
+            <button class="saci-btn-ghost" :class="{ 'saci-btn-active': (tab==='resources') }" @click.stop="tab='resources'; saveTab()">Resources</button>
+        </div>
         @php
             $totalDuration = collect($templates)
                 ->filter(fn($t) => isset($t['duration']))

@@ -39,11 +39,16 @@
         x-cloak
         style="max-height: calc({{ config('saci.ui.max_height', '30vh') }} - 36px);"
     >
-        <ul style="margin: 0; padding: 0; list-style: none;">
-            @foreach($templates as $template)
-                @include('saci::partials.template-card', ['template' => $template])
-            @endforeach
-        </ul>
+        <div x-show="tab==='views'" x-cloak>
+            <ul style="margin: 0; padding: 0; list-style: none;">
+                @foreach($templates as $template)
+                    @include('saci::partials.template-card', ['template' => $template])
+                @endforeach
+            </ul>
+        </div>
+        <div x-show="tab==='resources'" x-cloak>
+            @include('saci::partials.resources', ['resources' => $resources ?? []])
+        </div>
     </div>
 
     @include('saci::partials.scripts')

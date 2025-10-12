@@ -13,6 +13,7 @@ class DebugBarInjector
      * Template tracker instance.
      */
     protected TemplateTracker $tracker;
+    protected RequestResources $resources;
 
     /**
      * Cache the inline CSS content to avoid reading the file on every request.
@@ -22,9 +23,10 @@ class DebugBarInjector
     /**
      * Create a new debug bar injector instance.
      */
-    public function __construct(TemplateTracker $tracker)
+    public function __construct(TemplateTracker $tracker, RequestResources $resources)
     {
         $this->tracker = $tracker;
+        $this->resources = $resources;
     }
 
     /**
@@ -67,7 +69,8 @@ class DebugBarInjector
                 'total' => $this->tracker->getTotal(),
                 'version' => SaciInfo::getVersion(),
                 'author' => SaciInfo::getAuthor(),
-                'inlineCss' => $this->getInlineCss()
+                'inlineCss' => $this->getInlineCss(),
+                'resources' => $this->resources->getData(),
             ])->render();
         } catch (\Exception $e) {
             Log::error('Saci view error: ' . $e->getMessage());

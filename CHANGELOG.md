@@ -62,4 +62,15 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 - Consider the security implications before enabling in production; sensitive field filtering remains in place.
 - No breaking changes. Safe patch update.
 
+## [2.1.0] - 2025-10-12
+### Added
+- Tabbed UI: header now has tabs for "Views" and "Resources" with persisted selection.
+- Resources tab: shows route details (name, uri, methods, controller) and resolved services per request.
+
+### Changed
+- Inject `RequestResources` via DI and pass collected data to the bar view.
+
+### Notes
+- Backward compatible; if you were on 2.0.x, simply update.
+
 

@@ -55,6 +55,7 @@ class SaciServiceProvider extends ServiceProvider
         $this->app->singleton(TemplateTracker::class);
         $this->app->singleton(DebugBarInjector::class);
         $this->app->singleton(RequestValidator::class);
+        $this->app->singleton(RequestResources::class);
     }
 
     /**

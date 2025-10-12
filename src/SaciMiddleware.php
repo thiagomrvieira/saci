@@ -16,6 +16,7 @@ class SaciMiddleware
      * Template tracker instance.
      */
     protected TemplateTracker $tracker;
+    protected RequestResources $resources;
 
     /**
      * Debug bar injector instance.
@@ -33,11 +34,13 @@ class SaciMiddleware
     public function __construct(
         TemplateTracker $tracker,
         DebugBarInjector $injector,
-        RequestValidator $validator
+        RequestValidator $validator,
+        RequestResources $resources
     ) {
         $this->tracker = $tracker;
         $this->injector = $injector;
         $this->validator = $validator;
+        $this->resources = $resources;
     }
 
     /**
@@ -50,8 +53,11 @@ class SaciMiddleware
         }
 
         $this->registerViewTracker();
+        $this->resources->start();
 
         $response = $next($request);
+        // collect after route is resolved
+        $this->resources->collectFromRequest($request);
 
         return $this->injector->inject($response);
     }
