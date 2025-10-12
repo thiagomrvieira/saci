@@ -9,18 +9,26 @@
 >
     <div class="saci-title">
         <span>Saci</span>
-        <div class="saci-sep" style="display:inline-flex; gap: 8px; align-items: center; margin-left: 10px;">
-            <button class="saci-btn-ghost" :class="{ 'saci-btn-active': (tab==='views') }" @click.stop="tab='views'; saveTab()">Views ({{ $total }})</button>
-            <button class="saci-btn-ghost" :class="{ 'saci-btn-active': (tab==='resources') }" @click.stop="tab='resources'; saveTab()">Resources</button>
+        <div class="saci-tabs" role="tablist">
+            <button
+                class="saci-tab"
+                role="tab"
+                :class="{ 'saci-tab--active': (tab==='views') }"
+                :aria-selected="(tab==='views')"
+                aria-controls="saci-tabpanel-views"
+                type="button"
+                @click.stop="tab='views'; saveTab()"
+            >Views ({{ $total }})</button>
+            <button
+                class="saci-tab"
+                role="tab"
+                :class="{ 'saci-tab--active': (tab==='resources') }"
+                :aria-selected="(tab==='resources')"
+                aria-controls="saci-tabpanel-request"
+                type="button"
+                @click.stop="tab='resources'; saveTab()"
+            >Request</button>
         </div>
-        @php
-            $totalDuration = collect($templates)
-                ->filter(fn($t) => isset($t['duration']))
-                ->sum('duration');
-        @endphp
-        @if($totalDuration > 0)
-            <span class="saci-duration">{{ $totalDuration }}ms</span>
-        @endif
     </div>
     <div id="saci-controls" class="saci-controls">
         <div

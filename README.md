@@ -68,7 +68,8 @@ You can drag the bar header to resize its height. The bar height, collapsed/expa
 
 - Shows all loaded Blade views
 - Displays variables (type, preview and safe pretty-printed values)
-- **View loading time tracking** (performance monitoring)
+- **Views tab**: "Views loaded" counter and total "Views loading time"
+- **Request tab**: status, method, URI, request time, content-type, headers and request body (safe, limited)
 - Responsive and collapsible interface
 - Resizable debug bar (drag-to-resize)
 - Persistent UI state across reloads (collapsed, bar height, per-card and per-variable)

@@ -6,6 +6,10 @@
             tab: 'views',
             init() {
                 try { this.collapsed = localStorage.getItem('saci.collapsed') === '1'; } catch (e) {}
+                // Start collapsed unless user previously expanded
+                if (localStorage.getItem('saci.collapsed') === null) {
+                    this.collapsed = true;
+                }
                 try { const saved = localStorage.getItem('saci.tab'); if (saved) this.tab = saved; } catch (e) {}
                 if (!this.collapsed && window.Alpine) {
                     const store = Alpine.store('saci');

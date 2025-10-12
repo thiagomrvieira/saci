@@ -3,7 +3,7 @@
         const store = Alpine.store('saci');
         if (!store) return;
 
-        // Restore per-card expanded state
+        // Restore per-card expanded state (including Request tab cards)
         document.querySelectorAll('#saci-content .saci-card').forEach(card => {
             const key = card.getAttribute('data-saci-card-key');
             if (!key) return;

@@ -58,6 +58,7 @@ class SaciMiddleware
         $response = $next($request);
         // collect after route is resolved
         $this->resources->collectFromRequest($request);
+        $this->resources->collectFromResponse($response);
 
         return $this->injector->inject($response);
     }

@@ -91,6 +91,24 @@
 }
 #saci-content ul { margin: 0; padding: 0; list-style: none; }
 
+.saci-total {
+    margin: 8px 0 12px;
+    text-align: right;
+    font-size: 0.9em;
+    color: #a0aec0;
+}
+
+.saci-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 8px 0 12px;
+    color: #a0aec0;
+    font-size: 0.9em;
+}
+.saci-summary-left { text-align: left; }
+.saci-summary-right { text-align: right; }
+
 /* Collapsed state */
 #saci.saci-collapsed #saci-controls-buttons { display: none; }
 #saci.saci-collapsed #saci-controls-version { display: inline; }
@@ -155,6 +173,23 @@
 /* Header spacing and controls */
 #saci-header .saci-sep { margin-left: 10px; }
 #saci-header .saci-duration { color: #fc8181; margin-left: 10px; }
+
+/* Tabs - professional look */
+.saci-tabs { display: inline-flex; gap: 8px; margin-left: 10px; }
+.saci-tab {
+    appearance: none;
+    border: 1px solid rgba(148,163,184,0.22);
+    background: rgba(15,23,42,0.6);
+    color: #cbd5e0;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.82em;
+    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+.saci-tab:hover { background: rgba(30,41,59,0.7); border-color: rgba(148,163,184,0.35); }
+.saci-tab:focus { outline: 2px solid rgba(99,179,237,0.5); outline-offset: 2px; }
+.saci-tab--active { color: #63b3ed; border-color: rgba(99,179,237,0.6); background: rgba(17,24,39,0.8); }
 #saci-controls-buttons { display: flex; gap: 8px; align-items: center; }
 
 /* Show resize cursor only when expanded */

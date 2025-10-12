@@ -73,4 +73,16 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 ### Notes
 - Backward compatible; if you were on 2.0.x, simply update.
 
+## [2.2.0] - 2025-10-12
+### Added
+- Request tab renamed and expanded: request time, method/URI, headers (pretty), and body (safe, limited, JSON pretty when applicable).
+- Views tab summary: "Views loaded" and total "Views loading time".
+
+### Changed
+- Tabs/start state: bar starts collapsed unless user persisted state; per-card expand/collapse state is persisted across reloads.
+- UI polish: professional tab styles and aligned summaries.
+
+### Fixed
+- First-click toggle issue on Request cards by unifying state and persistence.
+
 
