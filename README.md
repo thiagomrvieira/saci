@@ -1,6 +1,6 @@
 # Saci
 
-A modern, elegant Laravel debugger that shows loaded views and their data in a floating bar.
+Saci is a zero‑config, modern Laravel debug bar for Blade views and requests. It shows loaded views, variables and timings, plus a Request tab with status, method/URI, headers and body.
 
 ## Requirements
 

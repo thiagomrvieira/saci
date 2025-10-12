@@ -153,6 +153,10 @@
 .saci-var-type { color: #b794f4; }
 .saci-toggle-btn { background: #2d3748; color: #e2e8f0; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; }
 
+/* Clickable variable rows */
+.saci-table tbody tr[data-saci-var-key] { cursor: pointer; }
+.saci-table tbody tr[data-saci-var-key]:hover { background: rgba(148,163,184,0.06); }
+
 .saci-pre {
     margin: 0;
     background: #111827;

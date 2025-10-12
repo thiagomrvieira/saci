@@ -1,9 +1,40 @@
 <script>
-    // Lightweight Alpine component factory for the Saci bar
     window.saciBar = function() {
         return {
             collapsed: false,
             tab: 'views',
+            toggleCard(container) {
+                const header = container.querySelector('.saci-card-toggle');
+                const contentEl = container.querySelector('.saci-card-content');
+                if (!contentEl || !header) return;
+                const expanded = header.getAttribute('aria-expanded') === 'true';
+                if (expanded) {
+                    container.classList.remove('is-open');
+                    setTimeout(() => { contentEl.style.display = 'none'; }, 240);
+                } else {
+                    contentEl.style.display = 'block';
+                    requestAnimationFrame(() => container.classList.add('is-open'));
+                }
+                header.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+                try {
+                    const key = container.getAttribute('data-saci-card-key');
+                    if (key) localStorage.setItem('saci.card.' + key, expanded ? '0' : '1');
+                } catch(e) {}
+            },
+            toggleVarRow(row) {
+                const valueRow = row.nextElementSibling;
+                if (!valueRow) return;
+                const isHidden = valueRow.style.display === 'none';
+                valueRow.style.display = isHidden ? 'table-row' : 'none';
+                const btn = row.querySelector('.saci-toggle-btn');
+                if (btn) btn.textContent = isHidden ? 'Hide' : 'Show';
+                try {
+                    const card = row.closest('.saci-card');
+                    const cardKey = card ? card.getAttribute('data-saci-card-key') : '';
+                    const varKey = row.getAttribute('data-saci-var-key') || '';
+                    if (cardKey && varKey) localStorage.setItem('saci.var.' + cardKey + '.' + varKey, isHidden ? '1' : '0');
+                } catch(e) {}
+            },
             init() {
                 try { this.collapsed = localStorage.getItem('saci.collapsed') === '1'; } catch (e) {}
                 // Start collapsed unless user previously expanded

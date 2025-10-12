@@ -7,7 +7,7 @@ class SaciInfo
     /**
      * Package version.
      */
-    public const VERSION = '2.0.0';
+    public const VERSION = '2.2.0';
 
     /**
      * Package author.

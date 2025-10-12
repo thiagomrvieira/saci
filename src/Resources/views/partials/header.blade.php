@@ -16,6 +16,7 @@
                 :class="{ 'saci-tab--active': (tab==='views') }"
                 :aria-selected="(tab==='views')"
                 aria-controls="saci-tabpanel-views"
+                id="saci-tab-views"
                 type="button"
                 @click.stop="tab='views'; saveTab()"
             >Views ({{ $total }})</button>
@@ -25,6 +26,7 @@
                 :class="{ 'saci-tab--active': (tab==='resources') }"
                 :aria-selected="(tab==='resources')"
                 aria-controls="saci-tabpanel-request"
+                id="saci-tab-request"
                 type="button"
                 @click.stop="tab='resources'; saveTab()"
             >Request</button>
