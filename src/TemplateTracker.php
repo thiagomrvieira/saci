@@ -137,7 +137,18 @@ class TemplateTracker
             ->reject(function ($value, $key) use ($hiddenFields) {
                 return in_array($key, $hiddenFields, true) || in_array($key, self::LARAVEL_GLOBALS, true);
             })
-            ->map(fn($value) => $this->normalizeValue($value, 0))
+            ->map(function ($value) {
+                try {
+                    return $this->normalizeValue($value, 0);
+                } catch (\Throwable $e) {
+                    return [
+                        'type' => is_object($value) ? get_class($value) : get_debug_type($value),
+                        'preview' => 'unserializable',
+                        'value' => null,
+                        'truncated' => true,
+                    ];
+                }
+            })
             ->toArray();
     }
 
@@ -274,8 +285,22 @@ class TemplateTracker
                     ];
                 }
 
-                // Fallback: public props
-                $props = get_object_vars($value);
+                // For framework/services (non-App namespace), avoid traversing internals
+                if (!str_starts_with($class, 'App\\')) {
+                    return [
+                        'type' => $class,
+                        'preview' => $class,
+                        'value' => null,
+                        'truncated' => true,
+                    ];
+                }
+
+                // Fallback: public props (App classes only)
+                try {
+                    $props = get_object_vars($value);
+                } catch (\Throwable $e) {
+                    $props = [];
+                }
                 if (!empty($props)) {
                     $normalized = [];
                     $i = 0;
