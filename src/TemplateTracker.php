@@ -154,180 +154,193 @@ class TemplateTracker
 
     /**
      * Normalize any PHP value into a safe, serializable structure with type and preview.
-     * Limits depth, string length, and collection size to avoid heavy dumps.
      */
-    protected function normalizeValue($value, int $depth = 0): array
+    protected function normalizeValue(mixed $value, int $depth = 0): array
     {
-        $type = gettype($value);
-
-        // Depth guard
         if ($depth > $this->maxDepth) {
-            return [
-                'type' => $type,
-                'preview' => '…',
-                'value' => null,
-                'truncated' => true
-            ];
+            return $this->truncatedResponse(gettype($value));
         }
 
-        switch ($type) {
-            case 'NULL':
-                return ['type' => 'null', 'preview' => 'null', 'value' => null, 'truncated' => false];
-            case 'boolean':
-                return ['type' => 'bool', 'preview' => $value ? 'true' : 'false', 'value' => $value, 'truncated' => false];
-            case 'integer':
-            case 'double':
-                return ['type' => $type === 'double' ? 'float' : 'int', 'preview' => (string)$value, 'value' => $value, 'truncated' => false];
-            case 'string':
-                $length = mb_strlen($value);
-                $isTruncated = $length > $this->maxStringLength;
-                $display = $isTruncated ? (mb_substr($value, 0, $this->maxStringLength) . '…') : $value;
-                return [
-                    'type' => 'string',
-                    'preview' => '"' . ($isTruncated ? mb_substr($value, 0, 50) . '…' : (mb_strlen($value) > 50 ? mb_substr($value, 0, 50) . '…' : $value)) . '" (len ' . $length . ')',
-                    'value' => $display,
-                    'truncated' => $isTruncated
-                ];
-            case 'array':
-                $count = count($value);
-                $normalizedChildren = [];
-                $i = 0;
-                foreach ($value as $k => $v) {
-                    if ($i >= $this->maxItems) {
-                        break;
-                    }
-                    $child = $this->normalizeValue($v, $depth + 1);
-                    $normalizedChildren[$k] = $child;
-                    $i++;
-                }
+        return match (gettype($value)) {
+            'NULL'      => $this->simpleResponse('null', 'null', null),
+            'boolean'   => $this->simpleResponse('bool', $value ? 'true' : 'false', $value),
+            'integer'   => $this->simpleResponse('int', (string) $value, $value),
+            'double'    => $this->simpleResponse('float', (string) $value, $value),
+            'string'    => $this->normalizeString($value),
+            'array'     => $this->normalizeArray($value, $depth),
+            'object'    => $this->normalizeObject($value, $depth),
+            default     => $this->simpleResponse(gettype($value), gettype($value)),
+        };
+    }
 
-                // Simplify for display: keep only children's values to avoid wrapper noise
-                $simplified = [];
-                foreach ($normalizedChildren as $k => $child) {
-                    $simplified[$k] = is_array($child) && array_key_exists('value', $child) ? $child['value'] : $child;
-                }
+    private function simpleResponse(string $type, string $preview, mixed $value = null, bool $truncated = false): array
+    {
+        return compact('type', 'preview', 'value', 'truncated');
+    }
 
-                return [
-                    'type' => 'array',
-                    'preview' => 'array(len ' . $count . ')',
-                    'value' => $simplified,
-                    'truncated' => $count > $this->maxItems
-                ];
-            case 'object':
-                $class = get_class($value);
+    private function truncatedResponse(string $type): array
+    {
+        return $this->simpleResponse($type, '…', null, true);
+    }
 
-                // DateTime-like
-                if ($value instanceof \DateTimeInterface) {
-                    $formatted = $value->format(DATE_ATOM);
-                    return ['type' => $class, 'preview' => $formatted, 'value' => $formatted, 'truncated' => false];
-                }
+    private function normalizeString(string $value): array
+    {
+        $length = mb_strlen($value);
+        $isTruncated = $length > $this->maxStringLength;
+        $display = $isTruncated ? mb_substr($value, 0, $this->maxStringLength) . '…' : $value;
 
-                // Laravel Collection
-                if ($value instanceof \Illuminate\Support\Collection) {
-                    $count = method_exists($value, 'count') ? $value->count() : null;
-                    $array = $value->take($this->maxItems)->toArray();
-                    $normalized = $this->normalizeValue($array, $depth + 1);
-                    return [
-                        'type' => $class,
-                        'preview' => $class . '(' . ($count !== null ? 'count ' . $count : 'collection') . ')',
-                        'value' => $normalized['value'],
-                        'truncated' => $count !== null ? $count > $this->maxItems : ($normalized['truncated'] ?? false)
-                    ];
-                }
+        $preview = sprintf('"%s" (len %d)',
+            mb_substr($value, 0, 50) . ($length > 50 ? '…' : ''),
+            $length
+        );
 
-                // Eloquent Model (attributes only)
-                if (is_subclass_of($value, \Illuminate\Database\Eloquent\Model::class)) {
-                    try {
-                        $attributes = method_exists($value, 'getAttributes') ? $value->getAttributes() : [];
-                    } catch (\Throwable $e) {
-                        $attributes = [];
-                    }
-                    $normalized = $this->normalizeValue($attributes, $depth + 1);
-                    $id = method_exists($value, 'getKey') ? $value->getKey() : null;
-                    $preview = $class . ($id !== null ? ' (id: ' . $id . ')' : '');
-                    return [
-                        'type' => $class,
-                        'preview' => $preview,
-                        'value' => $normalized['value'],
-                        'truncated' => $normalized['truncated']
-                    ];
-                }
+        return $this->simpleResponse('string', $preview, $display, $isTruncated);
+    }
 
-                // JsonSerializable
-                if ($value instanceof \JsonSerializable) {
-                    try {
-                        $data = $value->jsonSerialize();
-                    } catch (\Throwable $e) {
-                        $data = ['__error__' => 'jsonSerialize failed'];
-                    }
-                    $normalized = $this->normalizeValue($data, $depth + 1);
-                    return [
-                        'type' => $class,
-                        'preview' => $class,
-                        'value' => $normalized['value'],
-                        'truncated' => $normalized['truncated']
-                    ];
-                }
+    private function normalizeArray(array $value, int $depth): array
+    {
+        $count = count($value);
+        $normalized = [];
 
-                // Stringable
-                if (method_exists($value, '__toString')) {
-                    try {
-                        $string = (string)$value;
-                    } catch (\Throwable $e) {
-                        $string = $class;
-                    }
-                    $stringNorm = $this->normalizeValue($string, $depth + 1);
-                    return [
-                        'type' => $class,
-                        'preview' => $class,
-                        'value' => $stringNorm['value'],
-                        'truncated' => $stringNorm['truncated']
-                    ];
-                }
-
-                // For framework/services (non-App namespace), avoid traversing internals
-                if (!str_starts_with($class, 'App\\')) {
-                    return [
-                        'type' => $class,
-                        'preview' => $class,
-                        'value' => null,
-                        'truncated' => true,
-                    ];
-                }
-
-                // Fallback: public props (App classes only)
-                try {
-                    $props = get_object_vars($value);
-                } catch (\Throwable $e) {
-                    $props = [];
-                }
-                if (!empty($props)) {
-                    $normalized = [];
-                    $i = 0;
-                    foreach ($props as $k => $v) {
-                        if ($i >= $this->maxItems) {
-                            break;
-                        }
-                        $normalized[$k] = $this->normalizeValue($v, $depth + 1);
-                        $i++;
-                    }
-                    return [
-                        'type' => $class,
-                        'preview' => $class . '(object)',
-                        'value' => $normalized,
-                        'truncated' => count($props) > $this->maxItems
-                    ];
-                }
-
-                return [
-                    'type' => $class,
-                    'preview' => $class,
-                    'value' => null,
-                    'truncated' => false
-                ];
-            default:
-                return ['type' => $type, 'preview' => $type, 'value' => null, 'truncated' => false];
+        foreach (array_slice($value, 0, $this->maxItems, true) as $key => $item) {
+            $normalized[$key] = $this->normalizeValue($item, $depth + 1);
         }
+
+        $simplified = array_map(fn($child) => $child['value'] ?? $child, $normalized);
+
+        return [
+            'type' => 'array',
+            'preview' => "array(len {$count})",
+            'value' => $simplified,
+            'truncated' => $count > $this->maxItems,
+        ];
+    }
+
+    private function normalizeObject(object $value, int $depth): array
+    {
+        $class = $value::class;
+
+        if ($value instanceof \Closure) {
+            return $this->simpleResponse('Closure', 'closure', null, true);
+        }
+
+        if ($this->isFrameworkInternal($class)) {
+            return $this->simpleResponse($class, $class, null, true);
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            $formatted = $value->format(DATE_ATOM);
+            return $this->simpleResponse($class, $formatted, $formatted);
+        }
+
+        if ($value instanceof \Illuminate\Support\Collection) {
+            return $this->normalizeCollection($value, $class, $depth);
+        }
+
+        if ($value instanceof \Illuminate\Database\Eloquent\Model) {
+            return $this->normalizeModel($value, $class, $depth);
+        }
+
+        if ($value instanceof \JsonSerializable) {
+            return $this->normalizeJsonSerializable($value, $class, $depth);
+        }
+
+        if ($value instanceof \Illuminate\Contracts\Support\Arrayable) {
+            return $this->normalizeArrayable($value, $class, $depth);
+        }
+
+        if (method_exists($value, '__toString')) {
+            return $this->normalizeStringable($value, $class, $depth);
+        }
+
+        return $this->normalizeGenericObject($value, $class, $depth);
+    }
+
+    private function isFrameworkInternal(string $class): bool
+    {
+        return str_starts_with($class, 'Illuminate\\')
+            || str_starts_with($class, 'Symfony\\')
+            || str_starts_with($class, 'Psr\\')
+            || str_starts_with($class, 'GuzzleHttp\\');
+    }
+
+    private function normalizeCollection($collection, string $class, int $depth): array
+    {
+        $count = $collection->count();
+        $array = $collection->take($this->maxItems)->toArray();
+        $normalized = $this->normalizeValue($array, $depth + 1);
+
+        return [
+            'type' => $class,
+            'preview' => "$class(count {$count})",
+            'value' => $normalized['value'],
+            'truncated' => $count > $this->maxItems,
+        ];
+    }
+
+    private function normalizeModel($model, string $class, int $depth): array
+    {
+        $attributes = rescue(fn() => $model->getAttributes(), [], false);
+        $normalized = $this->normalizeValue($attributes, $depth + 1);
+        $id = $model->getKey();
+
+        return [
+            'type' => $class,
+            'preview' => $class . ($id ? " (id: {$id})" : ''),
+            'value' => $normalized['value'],
+            'truncated' => $normalized['truncated'],
+        ];
+    }
+
+    private function normalizeJsonSerializable($value, string $class, int $depth): array
+    {
+        $data = rescue(fn() => $value->jsonSerialize(), ['__error__' => 'jsonSerialize failed'], false);
+        $normalized = $this->normalizeValue($data, $depth + 1);
+
+        return [
+            'type' => $class,
+            'preview' => $class,
+            'value' => $normalized['value'],
+            'truncated' => $normalized['truncated'],
+        ];
+    }
+
+    private function normalizeArrayable($value, string $class, int $depth): array
+    {
+        $array = rescue(fn() => $value->toArray(), [], false);
+        return $this->normalizeValue($array, $depth + 1);
+    }
+
+    private function normalizeStringable($value, string $class, int $depth): array
+    {
+        $string = rescue(fn() => (string)$value, $class, false);
+        $normalized = $this->normalizeValue($string, $depth + 1);
+
+        return [
+            'type' => $class,
+            'preview' => $class,
+            'value' => $normalized['value'],
+            'truncated' => $normalized['truncated'],
+        ];
+    }
+
+    private function normalizeGenericObject($object, string $class, int $depth): array
+    {
+        if (!str_starts_with($class, 'App\\')) {
+            return $this->simpleResponse($class, $class, null, true);
+        }
+
+        $props = rescue(fn() => get_object_vars($object), [], false);
+        $limited = array_slice($props, 0, $this->maxItems, true);
+
+        $normalized = array_map(fn($v) => $this->normalizeValue($v, $depth + 1), $limited);
+
+        return [
+            'type' => $class,
+            'preview' => "{$class}(object)",
+            'value' => $normalized,
+            'truncated' => count($props) > $this->maxItems,
+        ];
     }
 
     /**

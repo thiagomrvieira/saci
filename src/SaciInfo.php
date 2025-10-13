@@ -35,13 +35,13 @@ class SaciInfo
             if (class_exists(InstalledVersions::class)) {
                 $v = InstalledVersions::getPrettyVersion('thiago-vieira/saci');
                 if (is_string($v) && $v !== '') {
-                    return $v;
+                    return ltrim($v, 'vV ');
                 }
             }
         } catch (\Throwable $e) {
             // ignore and fallback
         }
-        return self::VERSION;
+        return ltrim(self::VERSION, 'vV ');
     }
 
     /**
