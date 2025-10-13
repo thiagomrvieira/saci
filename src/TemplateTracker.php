@@ -41,8 +41,8 @@ class TemplateTracker
 
         // Allow configuration overrides with sensible defaults
         $this->maxDepth = (int) SaciConfig::get('dump.max_depth', 5);
-        $this->maxItems = (int) SaciConfig::get('dump.max_items', 10);
-        $this->maxStringLength = (int) SaciConfig::get('dump.max_string_length', 200);
+        $this->maxItems = (int) SaciConfig::get('dump.max_items', 50);
+        $this->maxStringLength = (int) SaciConfig::get('dump.max_string_length', 2000);
     }
 
     /**
@@ -132,9 +132,11 @@ class TemplateTracker
     protected function filterData(array $data): array
     {
         $hiddenFields = SaciConfig::getHiddenFields();
+        $ignoredKeys = (array) SaciConfig::get('ignore_view_keys', []);
 
         return collect($data)
-            ->reject(function ($value, $key) use ($hiddenFields) {
+            ->reject(function ($value, $key) use ($hiddenFields, $ignoredKeys) {
+                if (in_array($key, $ignoredKeys, true)) return true;
                 return in_array($key, $hiddenFields, true) || in_array($key, self::LARAVEL_GLOBALS, true);
             })
             ->map(function ($value) {
