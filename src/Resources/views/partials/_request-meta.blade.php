@@ -1,8 +1,13 @@
 <table class="saci-table">
     <tbody>
+        @php
+            $durationDisplay = isset($res['duration_ms']) && is_numeric($res['duration_ms'])
+                ? \ThiagoVieira\Saci\Support\PerformanceFormatter::formatMs((float) $res['duration_ms'])
+                : null;
+        @endphp
         @foreach([
             'status' => $res['status'] ?? null,
-            'duration' => isset($res['duration_ms']) ? (($res['duration_ms']).'ms') : null,
+            'duration' => $durationDisplay,
             'full_url' => $req['full_url'] ?? null,
             'request_format' => $req['format'] ?? null,
             'response' => $res['content_type'] ?? null,
