@@ -52,10 +52,17 @@ class SaciMiddleware
             return $next($request);
         }
 
+        // Ensure per-request clean state
+        if (method_exists($this->tracker, 'resetForRequest')) {
+            $this->tracker->resetForRequest();
+        }
         $this->registerViewTracker();
         $this->resources->start();
 
         $response = $next($request);
+        if (method_exists($this->validator, 'shouldSkipResponse') && $this->validator->shouldSkipResponse($response)) {
+            return $response;
+        }
         // collect after route is resolved
         $this->resources->collectFromRequest($request);
         $this->resources->collectFromResponse($response);
@@ -70,6 +77,5 @@ class SaciMiddleware
     {
         $this->tracker->register();
     }
-
 
 }

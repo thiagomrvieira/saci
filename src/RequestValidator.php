@@ -3,7 +3,8 @@
 namespace ThiagoVieira\Saci;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\App;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RequestValidator
 {
@@ -12,17 +13,53 @@ class RequestValidator
      */
     public function shouldTrace(Request $request): bool
     {
-        return SaciConfig::isEnabled() &&
-               $request->acceptsHtml() &&
-               !$request->ajax();
+        // Never trace Saci's own endpoints to avoid recursive injection
+        $path = $request->path();
+        if (str_starts_with($path, '__saci/')) return false;
+
+        if (!$this->isEnabled()) return false;
+        if (!$request->acceptsHtml()) return false;
+        if ($request->ajax() && !SaciConfig::get('allow_ajax', false)) return false;
+        // Skip JSON-accepting clients when ajax off
+        if (!$request->ajax() && str_contains((string) $request->header('Accept'), 'application/json')) return false;
+        if (!$this->isAllowedClient($request)) return false;
+        return true;
     }
 
     /**
-     * Check if current environment is valid for tracing.
+     * Determine if the dump HTML can be served (looser: allows ajax).
      */
-    protected function isValidEnvironment(): bool
+    public function shouldServeDump(Request $request): bool
     {
-        // Environment is no longer used to gate visibility; retained for BC if referenced elsewhere
+        // Allow serving dumps even for AJAX requests, but still block outsiders
+        $path = $request->path();
+        if (!str_starts_with($path, '__saci/dump/')) return false;
+        if (!$this->isEnabled()) return false;
+        if (!$this->isAllowedClient($request)) return false;
         return true;
+    }
+
+    protected function isEnabled(): bool
+    {
+        $enabled = SaciConfig::get('enabled');
+        if ($enabled === null) {
+            return (bool) config('app.debug');
+        }
+        return (bool) $enabled;
+    }
+
+    protected function isAllowedClient(Request $request): bool
+    {
+        $ips = (array) SaciConfig::get('allow_ips', []);
+        if (empty($ips)) return true;
+        $clientIp = $request->ip();
+        return in_array($clientIp, $ips, true);
+    }
+
+    public function shouldSkipResponse(object $response): bool
+    {
+        if ($response instanceof BinaryFileResponse) return true;
+        if ($response instanceof StreamedResponse) return true;
+        return false;
     }
 }

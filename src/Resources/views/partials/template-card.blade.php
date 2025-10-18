@@ -18,7 +18,7 @@
         'title' => $template['path'],
         'headerRight' => $headerRight,
         'open' => false,
-        'content' => view('saci::partials.variables-table', ['data' => $template['data']])->render(),
+        'content' => view('saci::partials.variables-table', ['data' => $template['data'], 'requestId' => $requestId ?? null])->render(),
     ])
 </li>
 

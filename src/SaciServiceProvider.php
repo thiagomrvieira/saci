@@ -6,6 +6,9 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\Http\Kernel;
 use ThiagoVieira\Saci\SaciConfig;
+use ThiagoVieira\Saci\Support\DumpManager;
+use ThiagoVieira\Saci\Support\DumpStorage;
+use ThiagoVieira\Saci\Http\Controllers\DumpController;
 
 class SaciServiceProvider extends ServiceProvider
 {
@@ -30,6 +33,7 @@ class SaciServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__.'/Resources/views', 'saci');
 
         $this->registerMiddleware();
+        $this->registerRoutes();
         $this->publishConfig();
         $this->publishAssets();
     }
@@ -52,10 +56,27 @@ class SaciServiceProvider extends ServiceProvider
      */
     protected function registerServices(): void
     {
+        $this->app->singleton(DumpStorage::class, function($app) {
+            $caps = config('saci.caps', []);
+            $perRequestBytes = (int) ($caps['per_request_bytes'] ?? 1048576);
+            $ttl = (int) ($caps['ttl_seconds'] ?? 60);
+            return new DumpStorage('local', $perRequestBytes, $ttl);
+        });
+        $this->app->singleton(DumpManager::class, function($app) {
+            $limits = config('saci.dump', []);
+            return new DumpManager($app->make(DumpStorage::class), $limits);
+        });
         $this->app->singleton(TemplateTracker::class);
         $this->app->singleton(DebugBarInjector::class);
         $this->app->singleton(RequestValidator::class);
         $this->app->singleton(RequestResources::class);
+    }
+
+    protected function registerRoutes(): void
+    {
+        $router = $this->app['router'];
+        $router->get('/__saci/dump/{requestId}/{dumpId}', [DumpController::class, 'show'])
+            ->middleware('web');
     }
 
 

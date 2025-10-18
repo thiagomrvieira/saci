@@ -12,7 +12,7 @@
     @foreach($data as $key => $info)
         <tr
             data-saci-var-key="{{ $key }}"
-            @click.stop="toggleVarRow($el)"
+            @click.stop="onVarRowClick($el)"
             tabindex="0"
             @keydown.enter.prevent="$el.click()"
             @keydown.space.prevent="$el.click()"
@@ -26,12 +26,14 @@
         </tr>
         <tr class="saci-value-row" style="display:none;">
             <td colspan="3" style="padding: 6px 4px; position: relative;">
-<pre class="saci-pre">{{
-    (json_encode(
-        is_array($info) ? ($info['value'] ?? null) : $info,
-        JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE
-    )) ?: 'null'
-}}</pre>
+                <div
+                    class="saci-dump"
+                    data-dump-id="{{ is_array($info) ? ($info['dump_id'] ?? '') : '' }}"
+                    data-request-id="{{ $requestId ?? '' }}"
+                >
+                    <div class="saci-dump-loading" style="display:none;">Loading…</div>
+                    <div class="saci-dump-content"></div>
+                </div>
             </td>
         </tr>
     @endforeach

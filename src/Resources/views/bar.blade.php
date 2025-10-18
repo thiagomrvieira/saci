@@ -1,12 +1,26 @@
 @php
     $publishedCssPath = public_path('vendor/saci/css/saci.css');
 @endphp
+
 @if(file_exists($publishedCssPath))
-    <link rel="stylesheet" href="{{ asset('vendor/saci/css/saci.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/saci/css/saci.css') }}?v={{ $version ?? '0' }}">
 @elseif(!empty($inlineCss ?? null))
     <style>{!! $inlineCss !!}</style>
 @endif
-<script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+
+@php $nonce = config('saci.csp_nonce'); @endphp
+
+<script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js" @if($nonce) nonce="{{ $nonce }}" @endif></script>
+
+@php $publishedJsPath = public_path('vendor/saci/js/saci.js'); @endphp
+
+@if(file_exists($publishedJsPath))
+    <script defer src="{{ asset('vendor/saci/js/saci.js') }}?v={{ $version ?? '0' }}" @if($nonce) nonce="{{ $nonce }}" @endif></script>
+@elseif(!empty($inlineJs ?? null))
+    <script @if($nonce) nonce="{{ $nonce }}" @endif>
+        {!! $inlineJs !!}
+    </script>
+@endif
 
 @php
     $theme = \ThiagoVieira\Saci\SaciConfig::getTheme();
@@ -121,5 +135,7 @@
         </div>
     </template>
 
-    @include('saci::partials.scripts')
+    @if(!file_exists($publishedJsPath))
+
+    @endif
 </div>

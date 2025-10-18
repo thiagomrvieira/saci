@@ -28,7 +28,6 @@
 #saci.saci-theme-default .saci-card { background-image: none; background-color: #0f172a; border: 1px solid rgba(148,163,184,0.10); box-shadow: 0 2px 8px rgba(0,0,0,0.16); }
 #saci.saci-theme-default .saci-badge { background: #111827; color: #cbd5e0; }
 #saci.saci-theme-default .saci-badge-danger { color: inherit; }
-#saci.saci-theme-default .saci-toggle-btn { background: #111827; color: #e5e7eb; border: 1px solid rgba(148,163,184,0.18); }
 
 #saci.saci-theme-dark { background: rgba(10,10,10, var(--saci-alpha, 1)); box-shadow: none; }
 #saci.saci-theme-dark #saci-header { background: rgba(17,17,17, var(--saci-alpha, 1)); border-bottom: 1px solid rgba(255,255,255,0.08); }
@@ -48,7 +47,6 @@
     border-radius: 4px;
 }
 #saci.saci-theme-dark .saci-badge-danger { color: inherit; border-color: rgba(248,113,113,0.30); }
-#saci.saci-theme-dark .saci-toggle-btn { background: transparent; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.16); border-radius: 4px; }
 #saci.saci-theme-dark .saci-table thead tr { border-bottom: 1px solid rgba(255,255,255,0.08); color: #e5e7eb; }
 #saci.saci-theme-dark .saci-table .saci-actions { box-shadow: -1px 0 0 rgba(255,255,255,0.06); }
 #saci.saci-theme-dark .saci-pre { background: #0b0b0b; border: 1px solid rgba(255,255,255,0.06); }
@@ -73,7 +71,6 @@
     border-radius: 6px;
 }
 #saci.saci-theme-minimal .saci-badge-danger { color: inherit; border-color: rgba(248,113,113,0.28); }
-#saci.saci-theme-minimal .saci-toggle-btn { background: transparent; color: #e5e7eb; border: 1px solid rgba(255,255,255,0.16); border-radius: 6px; }
 #saci.saci-theme-minimal .saci-table thead tr { border-bottom: 1px solid rgba(255,255,255,0.08); color: #d1d5db; }
 #saci.saci-theme-minimal .saci-table .saci-actions { box-shadow: -1px 0 0 rgba(255,255,255,0.06); }
 #saci.saci-theme-minimal .saci-pre { background: #0a0a0a; border: 1px solid rgba(255,255,255,0.06); }
@@ -160,7 +157,6 @@
 .saci-preview { padding-right: 110px; color: #a0aec0; word-break: break-word; white-space: normal; }
 .saci-var-name { color: #f6e05e; font-family: 'Fira Code', monospace; }
 .saci-var-type { color: #b794f4; }
-.saci-toggle-btn { background: #2d3748; color: #e2e8f0; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; }
 
 /* Clickable variable rows */
 .saci-table tbody tr[data-saci-var-key] { cursor: pointer; }

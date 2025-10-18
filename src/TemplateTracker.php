@@ -6,6 +6,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\View;
 use Illuminate\View\View as IlluminateView;
 use ThiagoVieira\Saci\SaciConfig;
+use ThiagoVieira\Saci\Support\DumpManager;
+use ThiagoVieira\Saci\Support\DumpStorage;
 
 class TemplateTracker
 {
@@ -27,22 +29,21 @@ class TemplateTracker
     /**
      * Normalization settings.
      */
-    private int $maxDepth;
-    private int $maxItems;
-    private int $maxStringLength;
+    // Legacy normalization settings (no longer used, retained for BC earlier) removed
+    private string $requestId;
 
     /**
      * Create a new template tracker instance.
      */
-    public function __construct()
+    public function __construct(
+        protected DumpManager $dumpManager,
+        protected DumpStorage $storage,
+    )
     {
         $this->templates = collect();
         $this->viewStartTimes = collect();
 
-        // Allow configuration overrides with sensible defaults
-        $this->maxDepth = (int) SaciConfig::get('dump.max_depth', 5);
-        $this->maxItems = (int) SaciConfig::get('dump.max_items', 50);
-        $this->maxStringLength = (int) SaciConfig::get('dump.max_string_length', 2000);
+        $this->requestId = $this->storage->generateRequestId();
     }
 
     /**
@@ -119,6 +120,16 @@ class TemplateTracker
     }
 
     /**
+     * Reset internal state for a new request lifecycle.
+     */
+    public function resetForRequest(): void
+    {
+        $this->templates = collect();
+        $this->viewStartTimes = collect();
+        $this->requestId = $this->storage->generateRequestId();
+    }
+
+    /**
      * Convert an absolute path into a project-relative path.
      */
     protected function toRelativePath(string $absolutePath): string
@@ -133,217 +144,64 @@ class TemplateTracker
     {
         $hiddenFields = SaciConfig::getHiddenFields();
         $ignoredKeys = (array) SaciConfig::get('ignore_view_keys', []);
+        $maskKeys = (array) SaciConfig::get('mask_keys', []);
 
         return collect($data)
             ->reject(function ($value, $key) use ($hiddenFields, $ignoredKeys) {
                 if (in_array($key, $ignoredKeys, true)) return true;
                 return in_array($key, $hiddenFields, true) || in_array($key, self::LARAVEL_GLOBALS, true);
             })
-            ->map(function ($value) {
+            ->map(function ($value, $key) use ($maskKeys) {
                 try {
-                    return $this->normalizeValue($value, 0);
+                    $normalized = $this->normalizeValue($value, 0);
+                    if ($this->shouldMaskKey((string) $key, $maskKeys)) {
+                        return [
+                            'type' => $normalized['type'] ?? get_debug_type($value),
+                            'preview' => '[masked]',
+                            'dump_id' => null,
+                        ];
+                    }
+                    return $normalized;
                 } catch (\Throwable $e) {
                     return [
                         'type' => is_object($value) ? get_class($value) : get_debug_type($value),
                         'preview' => 'unserializable',
-                        'value' => null,
-                        'truncated' => true,
+                        'dump_id' => null,
                     ];
                 }
             })
             ->toArray();
     }
 
+    protected function shouldMaskKey(string $key, array $maskKeys): bool
+    {
+        if (in_array($key, $maskKeys, true)) return true;
+        foreach ($maskKeys as $pattern) {
+            if (@preg_match($pattern, '') !== false && preg_match($pattern, $key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
-     * Normalize any PHP value into a safe, serializable structure with type and preview.
+     * Build a preview and a dumpId for lazy loading, using VarDumper without side effects.
      */
     protected function normalizeValue(mixed $value, int $depth = 0): array
     {
-        if ($depth > $this->maxDepth) {
-            return $this->truncatedResponse(gettype($value));
-        }
-
-        return match (gettype($value)) {
-            'NULL'      => $this->simpleResponse('null', 'null', null),
-            'boolean'   => $this->simpleResponse('bool', $value ? 'true' : 'false', $value),
-            'integer'   => $this->simpleResponse('int', (string) $value, $value),
-            'double'    => $this->simpleResponse('float', (string) $value, $value),
-            'string'    => $this->normalizeString($value),
-            'array'     => $this->normalizeArray($value, $depth),
-            'object'    => $this->normalizeObject($value, $depth),
-            default     => $this->simpleResponse(gettype($value), gettype($value)),
-        };
-    }
-
-    private function simpleResponse(string $type, string $preview, mixed $value = null, bool $truncated = false): array
-    {
-        return compact('type', 'preview', 'value', 'truncated');
-    }
-
-    private function truncatedResponse(string $type): array
-    {
-        return $this->simpleResponse($type, '…', null, true);
-    }
-
-    private function normalizeString(string $value): array
-    {
-        $length = mb_strlen($value);
-        $isTruncated = $length > $this->maxStringLength;
-        $display = $isTruncated ? mb_substr($value, 0, $this->maxStringLength) . '…' : $value;
-
-        $preview = sprintf('"%s" (len %d)',
-            mb_substr($value, 0, 50) . ($length > 50 ? '…' : ''),
-            $length
-        );
-
-        return $this->simpleResponse('string', $preview, $display, $isTruncated);
-    }
-
-    private function normalizeArray(array $value, int $depth): array
-    {
-        $count = count($value);
-        $normalized = [];
-
-        foreach (array_slice($value, 0, $this->maxItems, true) as $key => $item) {
-            $normalized[$key] = $this->normalizeValue($item, $depth + 1);
-        }
-
-        $simplified = array_map(fn($child) => $child['value'] ?? $child, $normalized);
+        // Build preview via DumpManager with strict limits
+        $preview = $this->dumpManager->buildPreview($value);
+        // Store full dump HTML for lazy render
+        $dumpId = $this->dumpManager->storeDump($this->requestId, $value);
+        $type = is_object($value) ? get_class($value) : get_debug_type($value);
 
         return [
-            'type' => 'array',
-            'preview' => "array(len {$count})",
-            'value' => $simplified,
-            'truncated' => $count > $this->maxItems,
+            'type' => $type,
+            'preview' => $preview,
+            'dump_id' => $dumpId,
         ];
     }
 
-    private function normalizeObject(object $value, int $depth): array
-    {
-        $class = $value::class;
-
-        if ($value instanceof \Closure) {
-            return $this->simpleResponse('Closure', 'closure', null, true);
-        }
-
-        if ($this->isFrameworkInternal($class)) {
-            return $this->simpleResponse($class, $class, null, true);
-        }
-
-        if ($value instanceof \DateTimeInterface) {
-            $formatted = $value->format(DATE_ATOM);
-            return $this->simpleResponse($class, $formatted, $formatted);
-        }
-
-        if ($value instanceof \Illuminate\Support\Collection) {
-            return $this->normalizeCollection($value, $class, $depth);
-        }
-
-        if ($value instanceof \Illuminate\Database\Eloquent\Model) {
-            return $this->normalizeModel($value, $class, $depth);
-        }
-
-        if ($value instanceof \JsonSerializable) {
-            return $this->normalizeJsonSerializable($value, $class, $depth);
-        }
-
-        if ($value instanceof \Illuminate\Contracts\Support\Arrayable) {
-            return $this->normalizeArrayable($value, $class, $depth);
-        }
-
-        if (method_exists($value, '__toString')) {
-            return $this->normalizeStringable($value, $class, $depth);
-        }
-
-        return $this->normalizeGenericObject($value, $class, $depth);
-    }
-
-    private function isFrameworkInternal(string $class): bool
-    {
-        return str_starts_with($class, 'Illuminate\\')
-            || str_starts_with($class, 'Symfony\\')
-            || str_starts_with($class, 'Psr\\')
-            || str_starts_with($class, 'GuzzleHttp\\');
-    }
-
-    private function normalizeCollection($collection, string $class, int $depth): array
-    {
-        $count = $collection->count();
-        $array = $collection->take($this->maxItems)->toArray();
-        $normalized = $this->normalizeValue($array, $depth + 1);
-
-        return [
-            'type' => $class,
-            'preview' => "$class(count {$count})",
-            'value' => $normalized['value'],
-            'truncated' => $count > $this->maxItems,
-        ];
-    }
-
-    private function normalizeModel($model, string $class, int $depth): array
-    {
-        $attributes = rescue(fn() => $model->getAttributes(), [], false);
-        $normalized = $this->normalizeValue($attributes, $depth + 1);
-        $id = $model->getKey();
-
-        return [
-            'type' => $class,
-            'preview' => $class . ($id ? " (id: {$id})" : ''),
-            'value' => $normalized['value'],
-            'truncated' => $normalized['truncated'],
-        ];
-    }
-
-    private function normalizeJsonSerializable($value, string $class, int $depth): array
-    {
-        $data = rescue(fn() => $value->jsonSerialize(), ['__error__' => 'jsonSerialize failed'], false);
-        $normalized = $this->normalizeValue($data, $depth + 1);
-
-        return [
-            'type' => $class,
-            'preview' => $class,
-            'value' => $normalized['value'],
-            'truncated' => $normalized['truncated'],
-        ];
-    }
-
-    private function normalizeArrayable($value, string $class, int $depth): array
-    {
-        $array = rescue(fn() => $value->toArray(), [], false);
-        return $this->normalizeValue($array, $depth + 1);
-    }
-
-    private function normalizeStringable($value, string $class, int $depth): array
-    {
-        $string = rescue(fn() => (string)$value, $class, false);
-        $normalized = $this->normalizeValue($string, $depth + 1);
-
-        return [
-            'type' => $class,
-            'preview' => $class,
-            'value' => $normalized['value'],
-            'truncated' => $normalized['truncated'],
-        ];
-    }
-
-    private function normalizeGenericObject($object, string $class, int $depth): array
-    {
-        if (!str_starts_with($class, 'App\\')) {
-            return $this->simpleResponse($class, $class, null, true);
-        }
-
-        $props = rescue(fn() => get_object_vars($object), [], false);
-        $limited = array_slice($props, 0, $this->maxItems, true);
-
-        $normalized = array_map(fn($v) => $this->normalizeValue($v, $depth + 1), $limited);
-
-        return [
-            'type' => $class,
-            'preview' => "{$class}(object)",
-            'value' => $normalized,
-            'truncated' => count($props) > $this->maxItems,
-        ];
-    }
 
     /**
      * Get all tracked templates.
@@ -351,6 +209,11 @@ class TemplateTracker
     public function getTemplates(): array
     {
         return $this->templates->toArray();
+    }
+
+    public function getRequestId(): string
+    {
+        return $this->requestId;
     }
 
     /**
