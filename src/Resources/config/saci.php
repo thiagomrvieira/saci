@@ -24,7 +24,7 @@ return [
     'auto_register_middleware' => true,
 
     // Allow AJAX requests to render the bar
-    'allow_ajax' => env('SACI_ALLOW_AJAX', false),
+    'allow_ajax' => env('SACI_ALLOW_AJAX', true),
 
     // Optional whitelist of client IPs
     'allow_ips' => array_filter(array_map('trim', explode(',', (string) env('SACI_ALLOW_IPS', '')))),

@@ -75,14 +75,34 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 ## [2.2.0] - 2025-10-12
 ### Added
-- Request tab renamed and expanded: request time, method/URI, headers (pretty), and body (safe, limited, JSON pretty when applicable).
-- Views tab summary: "Views loaded" and total "Views loading time".
+- Request tab renamed and expanded: response time, method/URI, headers/body/query/cookies/session with on‑demand dumps.
+- Views tab summary moved to header controls: "X views loaded in: Y ms".
+- Route tab added: name, uri, methods, domain, prefix, controller/action; dumps for parameters, middleware, where, compiled.
 
 ### Changed
-- Tabs/start state: bar starts collapsed unless user persisted state; per-card expand/collapse state is persisted across reloads.
-- UI polish: professional tab styles and aligned summaries.
+- Tabs/start state: bar starts collapsed unless user persisted state; per-card and per-variable expand state persists across reloads (Views/Request/Route).
+- UI polish: professional tab styles and aligned summaries; header controls show context summary for the active tab.
 
 ### Fixed
 - First-click toggle issue on Request cards by unifying state and persistence.
+- Avoid duplicate injection on dump AJAX responses; guard for existing bar; skip Saci internal routes.
+- Restore dumps after refresh for expanded rows (including inline dumps in Request/Route).
 
+
+## [2.3.0] - 2025-10-19
+### Added
+- On-demand, CSP-friendly dumps for Request (headers/body/query/cookies/session) and Route (parameters/middleware/where/compiled), using Symfony VarDumper + storage per request.
+- Inline JS/CSS fallbacks and route `/__saci/dump/{requestId}/{dumpId}` for lazy loading dumps.
+- Header controls show contextual summaries (Views: “X views loaded in”; Request: “Response time”; Route: “METHOD URI”), both expanded and collapsed.
+
+### Changed
+- Alpine-first refactor of `saci.js`: smaller, focused methods; helpers for restore/toggle/load; persisted expand state across tabs (Views/Request/Route).
+- Tabs: removed counts from titles; minimized/expanded summaries moved to header area.
+
+### Removed
+- Global Expand/Collapse buttons and related code/styling.
+
+### Fixed
+- Prevent duplicate bar injection (guards for existing bar and Saci internal routes).
+- Restore expanded variable dumps after refresh (including inline sections in Request/Route).
 

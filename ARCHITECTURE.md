@@ -30,23 +30,24 @@ Saci follows Laravel's best practices and modern PHP patterns, implementing a cl
 - **Features**:
   - View creator registration
   - Template path extraction
-  - Data filtering and sanitization
+  - Data filtering and sanitization (masking)
+  - Uses DumpManager to build previews and persist dump ids per request
   - Collection management
 
 #### 4. **DebugBarInjector**
 - **Responsibility**: Response modification and debug bar rendering
 - **Features**:
-  - HTML content injection
+  - HTML content injection (skips non-HTML/binary/attachment)
   - View rendering
   - Error handling
-- **Dependencies**: TemplateTracker
+- **Dependencies**: TemplateTracker, RequestResources
 
 #### 5. **RequestValidator**
 - **Responsibility**: Request validation logic
 - **Features**:
-  - Environment validation
-  - Request type validation
-  - Configuration-based validation
+  - Gating via `saci.enabled` (inherits app.debug when null)
+  - Skips ajax when disabled, skips JSON accept, IP allowlist
+  - Skips BinaryFileResponse/StreamedResponse
 
 #### 6. **SaciConfig**
 - **Responsibility**: Configuration management
@@ -86,7 +87,7 @@ Saci follows Laravel's best practices and modern PHP patterns, implementing a cl
 ## Data Flow
 
 ```
-Request → Middleware → RequestValidator → TemplateTracker → DebugBarInjector → Response
+Request → Middleware → RequestValidator → TemplateTracker + RequestResources → DebugBarInjector → Response
 ```
 
 1. **Request** enters the middleware
@@ -95,19 +96,27 @@ Request → Middleware → RequestValidator → TemplateTracker → DebugBarInje
 4. **DebugBarInjector** modifies the response with debug information
 5. **Response** is returned with debug bar injected
 
-## Configuration Structure
+## Configuration Structure (excerpt)
 
 ```php
 'saci' => [
-    'enabled' => true,
+    'enabled' => env('SACI_ENABLED', null),
     'auto_register_middleware' => true,
-    'environments' => ['local', 'development'],
-    'hide_data_fields' => ['password', 'token', 'secret'],
+    'allow_ajax' => false,
+    'allow_ips' => [],
+    'hide_data_fields' => ['password','token','secret','api_key','credentials'],
+    'mask_keys' => ['password','/authorization/i','/cookie/i'],
     'ui' => [
         'position' => 'bottom',
-        'theme' => 'dark',
-        'max_height' => '30vh'
-    ]
+        'theme' => 'default',
+        'max_height' => '30vh',
+        'transparency' => 1.0,
+    ],
+    'dump' => [
+        'preview_max_chars' => 70,
+        'max_items' => 10000,
+        'max_string' => 10000,
+    ],
 ]
 ```
 
@@ -118,12 +127,12 @@ Request → Middleware → RequestValidator → TemplateTracker → DebugBarInje
 - Fallback mechanisms for failed operations
 - Non-intrusive error recovery
 
-## Performance Considerations
+## Performance & Security
 
-- Lazy loading of components
-- Efficient data collection using Laravel Collections
-- Minimal impact on application performance
-- Configurable activation based on environment
+- On-demand dumps via Symfony VarDumper; previews only in initial HTML
+- Per-request storage with caps; lazy load full dumps via `/__saci/dump/{requestId}/{dumpId}`
+- Hard caps on preview/dump size; masking for sensitive keys
+- CSP-friendly assets with optional nonce; no inline JS required
 
 ## Testing Strategy
 
