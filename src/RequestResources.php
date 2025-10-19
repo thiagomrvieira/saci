@@ -136,6 +136,7 @@ class RequestResources
             'query' => $request->query(),
             'request' => $request->request->all(),
             'headers_all' => $request->headers->all(),
+            'session' => $request->hasSession() ? (array) $request->session()->all() : [],
         ];
 
         // Raw body (safe, limited size, omit multipart)
@@ -170,6 +171,21 @@ class RequestResources
                 $rawBody = $this->requestMeta['raw'] ?? '';
                 $this->requestMeta['raw_preview'] = $this->dumpManager->buildPreview($rawBody);
                 $this->requestMeta['raw_dump_id'] = $this->dumpManager->storeDump($reqId, $rawBody);
+
+                // Query string params
+                $query = $this->requestMeta['query'] ?? [];
+                $this->requestMeta['query_preview'] = $this->dumpManager->buildPreview($query);
+                $this->requestMeta['query_dump_id'] = $this->dumpManager->storeDump($reqId, $query);
+
+                // Cookies
+                $cookies = $this->requestMeta['cookies'] ?? [];
+                $this->requestMeta['cookies_preview'] = $this->dumpManager->buildPreview($cookies);
+                $this->requestMeta['cookies_dump_id'] = $this->dumpManager->storeDump($reqId, $cookies);
+
+                // Session
+                $session = $this->requestMeta['session'] ?? [];
+                $this->requestMeta['session_preview'] = $this->dumpManager->buildPreview($session);
+                $this->requestMeta['session_dump_id'] = $this->dumpManager->storeDump($reqId, $session);
             }
         } catch (\Throwable $e) {
             // ignore dump failures gracefully

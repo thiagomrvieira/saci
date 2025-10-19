@@ -20,7 +20,7 @@
                 type="button"
                 @click.stop="selectTab('views')"
             >
-                Views ({{ $total }})
+                Views
             </button>
             <button
                 class="saci-tab"
@@ -54,25 +54,86 @@
             x-show="!collapsed"
             x-cloak
         >
-            <button
-                id="saci-expand"
-                aria-label="Expand all"
-                class="saci-btn-ghost"
-                @click.stop="expandAll()"
-            >Expand all</button>
-            <button
-                id="saci-collapse"
-                aria-label="Collapse all"
-                class="saci-btn-ghost"
-                @click.stop="collapseAll()"
-            >Collapse all</button>
+            <template x-if="tab==='views'">
+                <div class="saci-summary" style="margin:0;">
+                    @if(!empty($viewsMeta))
+                        <div class="saci-summary-right">{{ $total }} views loaded in: <strong
+                            class="{{ $viewsMeta['class'] ?? '' }}"
+                            data-saci-tooltip="{{ $viewsMeta['tooltip'] ?? '' }}"
+                            tabindex="0"
+                            @mouseenter="showTooltip($event)"
+                            @mouseleave="hideTooltip()"
+                            @focus="showTooltip($event)"
+                            @blur="hideTooltip()"
+                        >{{ $viewsMeta['display'] ?? '' }}</strong></div>
+                    @endif
+                </div>
+            </template>
+            <template x-if="tab==='resources'">
+                <div class="saci-summary" style="margin:0;">
+                    @if(!empty($requestMeta))
+                        <div class="saci-summary-right">Response time: <strong
+                            class="{{ $requestMeta['class'] ?? '' }}"
+                            data-saci-tooltip="{{ $requestMeta['tooltip'] ?? '' }}"
+                            tabindex="0"
+                            @mouseenter="showTooltip($event)"
+                            @mouseleave="hideTooltip()"
+                            @focus="showTooltip($event)"
+                            @blur="hideTooltip()"
+                        >{{ $requestMeta['display'] ?? '' }}</strong></div>
+                    @endif
+                </div>
+            </template>
+            <template x-if="tab==='route'">
+                <div class="saci-summary" style="margin:0;">
+                    <div class="saci-summary-left">{{ $method }} {{ $uri }}</div>
+                </div>
+            </template>
         </div>
         <span
             id="saci-controls-version"
             class="saci-subtle"
             x-show="collapsed"
             x-cloak
-        >v{{ $version }} by {{ $author }}</span>
+        >
+            <template x-if="tab==='views'">
+                <span>
+                    @if(!empty($viewsMeta))
+                        {{ $total }} views loaded in:
+                        <strong
+                            class="{{ $viewsMeta['class'] ?? '' }}"
+                            data-saci-tooltip="{{ $viewsMeta['tooltip'] ?? '' }}"
+                            tabindex="0"
+                            @mouseenter="showTooltip($event)"
+                            @mouseleave="hideTooltip()"
+                            @focus="showTooltip($event)"
+                            @blur="hideTooltip()"
+                        >{{ $viewsMeta['display'] ?? '' }}</strong>
+                    @endif
+                </span>
+            </template>
+            <template x-if="tab==='resources'">
+                <span>
+                    @if(!empty($requestMeta))
+                        Response time:
+                        <strong
+                            class="{{ $requestMeta['class'] ?? '' }}"
+                            data-saci-tooltip="{{ $requestMeta['tooltip'] ?? '' }}"
+                            tabindex="0"
+                            @mouseenter="showTooltip($event)"
+                            @mouseleave="hideTooltip()"
+                            @focus="showTooltip($event)"
+                            @blur="hideTooltip()"
+                        >{{ $requestMeta['display'] ?? '' }}</strong>
+                    @endif
+                </span>
+            </template>
+            <template x-if="tab==='route'">
+                <span>
+                    {{ $method }} {{ $uri }}
+                </span>
+            </template>
+        </span>
         <div
             id="saci-arrow"
             class="saci-subtle"

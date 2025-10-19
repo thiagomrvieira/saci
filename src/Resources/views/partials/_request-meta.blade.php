@@ -28,6 +28,9 @@
         @foreach([
             'headers' => ['preview' => $req['headers_preview'] ?? '', 'dump_id' => $req['headers_dump_id'] ?? null],
             'body' => ['preview' => $req['raw_preview'] ?? ($req['raw'] ?? ''), 'dump_id' => $req['raw_dump_id'] ?? null],
+            'query' => ['preview' => $req['query_preview'] ?? '', 'dump_id' => $req['query_dump_id'] ?? null],
+            'cookies' => ['preview' => $req['cookies_preview'] ?? '', 'dump_id' => $req['cookies_dump_id'] ?? null],
+            'session' => ['preview' => $req['session_preview'] ?? '', 'dump_id' => $req['session_dump_id'] ?? null],
         ] as $label => $info)
             <tr
                 data-saci-var-key="request.{{ $label }}"

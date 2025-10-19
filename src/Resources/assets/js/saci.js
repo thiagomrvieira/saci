@@ -119,18 +119,61 @@
             /** Restores open/closed state of variable rows. */
             restoreVarRows() {
                 this.$root.querySelectorAll('#saci-content .saci-card').forEach(card => {
-                    const cardKey = card.getAttribute('data-saci-card-key');
+                    const cardKey = this.getCardKey(card);
                     if (!cardKey) return;
                     card.querySelectorAll('tr[data-saci-var-key]').forEach(row => {
-                        const varKey = row.getAttribute('data-saci-var-key');
+                        const varKey = this.getVarKey(row);
                         if (!varKey) return;
-                        const open = storage.get('saci.var.' + cardKey + '.' + varKey);
-                        if (open === '1') {
-                            const valueRow = row.nextElementSibling;
-                            if (valueRow) valueRow.style.display = 'table-row';
-                        }
+                        const isOpen = this.isRowOpen(cardKey, varKey);
+                        if (isOpen) this.restoreRowOpenState(row);
                     });
                 });
+            },
+
+            /** Helper: get card key. */
+            getCardKey(card) {
+                return card ? (card.getAttribute('data-saci-card-key') || '') : '';
+            },
+
+            /** Helper: get row var key. */
+            getVarKey(row) {
+                return row ? (row.getAttribute('data-saci-var-key') || '') : '';
+            },
+
+            /** Helper: read persisted open state. */
+            isRowOpen(cardKey, varKey) {
+                return storage.get('saci.var.' + cardKey + '.' + varKey) === '1';
+            },
+
+            /** Helper: persist row state. */
+            setRowOpen(cardKey, varKey, isOpen) {
+                try { storage.set('saci.var.' + cardKey + '.' + varKey, isOpen ? '1' : '0'); } catch (e) {}
+            },
+
+            /** Helper: restore a row that should be open (inline or valueRow). */
+            restoreRowOpenState(row) {
+                const inline = row.querySelector('.saci-dump-inline');
+                if (inline) {
+                    this.showInlineDump(row, inline);
+                    const dumpId = inline.getAttribute('data-dump-id');
+                    const requestId = inline.getAttribute('data-request-id');
+                    const content = inline.querySelector('.saci-dump-content');
+                    if (dumpId && requestId && content && content.childElementCount === 0) {
+                        this.loadDumpInto(inline, requestId, dumpId);
+                    }
+                    return;
+                }
+                const valueRow = row.nextElementSibling;
+                if (!valueRow) return;
+                valueRow.style.display = 'table-row';
+                const container = valueRow.querySelector('.saci-dump');
+                if (!container) return;
+                const dumpId = container.getAttribute('data-dump-id');
+                const requestId = container.getAttribute('data-request-id');
+                const content = container.querySelector('.saci-dump-content');
+                if (dumpId && requestId && content && content.childElementCount === 0) {
+                    this.loadDumpInto(container, requestId, dumpId);
+                }
             },
 
             /** Enables drag-to-resize on the header. */
@@ -275,24 +318,10 @@
                     const content = inline.querySelector('.saci-dump-content');
                     const loading = inline.querySelector('.saci-dump-loading');
                     if (dumpId && requestId && content && content.childElementCount === 0) {
-                        try {
-                            if (loading) loading.style.display = 'block';
-                            const html = await dumps.fetchHtml(requestId, dumpId);
-                            content.innerHTML = html;
-                            const previewSpan = row.querySelector('.saci-inline-preview');
-                            if (previewSpan) previewSpan.style.display = 'none';
-                            inline.style.display = 'block';
-                        } catch (e) {
-                            if (content) content.textContent = 'Failed to load dump';
-                        } finally {
-                            if (loading) loading.style.display = 'none';
-                        }
+                        await this.openInlineAndLoad(row, inline, requestId, dumpId, loading, content);
                         return;
                     } else {
-                        const previewSpan = row.querySelector('.saci-inline-preview');
-                        const isVisible = inline.style.display !== 'none';
-                        inline.style.display = isVisible ? 'none' : 'block';
-                        if (previewSpan) previewSpan.style.display = isVisible ? 'inline' : 'none';
+                        this.toggleInlineDump(row, inline);
                         return;
                     }
                 }
@@ -312,6 +341,43 @@
                 this.toggleVarRow(row);
             },
 
+            /** Helper: show inline dump area and hide preview. */
+            showInlineDump(row, inline) {
+                const previewSpan = row.querySelector('.saci-inline-preview');
+                if (previewSpan) previewSpan.style.display = 'none';
+                inline.style.display = 'block';
+            },
+
+            /** Helper: toggle inline dump visibility and persist state. */
+            toggleInlineDump(row, inline) {
+                const previewSpan = row.querySelector('.saci-inline-preview');
+                const isVisible = inline.style.display !== 'none';
+                inline.style.display = isVisible ? 'none' : 'block';
+                if (previewSpan) previewSpan.style.display = isVisible ? 'inline' : 'none';
+                try {
+                    const cardKey = this.getCardKey(row.closest('.saci-card'));
+                    const varKey = this.getVarKey(row);
+                    if (cardKey && varKey) this.setRowOpen(cardKey, varKey, !isVisible);
+                } catch (e) {}
+            },
+
+            /** Helper: open inline and load content, persisting state. */
+            async openInlineAndLoad(row, inline, requestId, dumpId, loading, content) {
+                try {
+                    if (loading) loading.style.display = 'block';
+                    const html = await dumps.fetchHtml(requestId, dumpId);
+                    content.innerHTML = html;
+                    this.showInlineDump(row, inline);
+                    const cardKey = this.getCardKey(row.closest('.saci-card'));
+                    const varKey = this.getVarKey(row);
+                    if (cardKey && varKey) this.setRowOpen(cardKey, varKey, true);
+                } catch (e) {
+                    if (content) content.textContent = 'Failed to load dump';
+                } finally {
+                    if (loading) loading.style.display = 'none';
+                }
+            },
+
             /** Loads a dump into the row from ids. @param {HTMLElement} container @param {string} requestId @param {string} dumpId @param {HTMLTableRowElement} row */
             async loadDumpFromIds(container, requestId, dumpId, row) {
                 const loading = container.querySelector('.saci-dump-loading');
@@ -320,6 +386,21 @@
                     const html = await dumps.fetchHtml(requestId, dumpId); if (content) content.innerHTML = html;
                 } catch (e) { if (content) content.textContent = 'Failed to load dump'; }
                 finally { if (loading) loading.style.display = 'none'; this.toggleVarRow(row); }
+            },
+
+            /** Loads dump HTML into a container without toggling rows. */
+            async loadDumpInto(container, requestId, dumpId) {
+                const loading = container.querySelector('.saci-dump-loading');
+                const content = container.querySelector('.saci-dump-content');
+                try {
+                    if (loading) loading.style.display = 'block';
+                    const html = await dumps.fetchHtml(requestId, dumpId);
+                    if (content) content.innerHTML = html;
+                } catch (e) {
+                    if (content) content.textContent = 'Failed to load dump';
+                } finally {
+                    if (loading) loading.style.display = 'none';
+                }
             },
 
             /** Collapses/expands the bar and persists state. */
@@ -347,25 +428,7 @@
                 this.saveTab();
             },
 
-            /** Expands all cards and rows. */
-            expandAll() {
-                const content = document.getElementById('saci-content'); if (!content) return;
-                content.querySelectorAll('.saci-value-row').forEach(r => r.style.display = 'table-row');
-                content.querySelectorAll('.saci-card').forEach(card => {
-                    const c = card.querySelector('.saci-card-content'); const t = card.querySelector('.saci-card-toggle'); if (!c || !t) return;
-                    c.style.display = 'block'; requestAnimationFrame(() => card.classList.add('is-open')); t.setAttribute('aria-expanded', 'true');
-                });
-            },
 
-            /** Collapses all cards and rows. */
-            collapseAll() {
-                const content = document.getElementById('saci-content'); if (!content) return;
-                content.querySelectorAll('.saci-value-row').forEach(r => r.style.display = 'none');
-                content.querySelectorAll('.saci-card').forEach(card => {
-                    const c = card.querySelector('.saci-card-content'); const t = card.querySelector('.saci-card-toggle'); if (!c || !t) return;
-                    card.classList.remove('is-open'); setTimeout(() => { c.style.display = 'none'; }, 240); t.setAttribute('aria-expanded', 'false');
-                });
-            }
         };
     };
 

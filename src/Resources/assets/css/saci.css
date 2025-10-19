@@ -177,7 +177,7 @@
     padding-right: 120px;
 }
 
-.saci-btn-ghost { background: transparent; color: #cbd5e0; border: 1px solid rgba(148,163,184,0.18); padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.8em; opacity: 0.9; }
+.saci-btn-ghost { display: none; }
 
 /* Header spacing and controls */
 #saci-header .saci-sep { margin-left: 10px; }
