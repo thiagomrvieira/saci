@@ -24,7 +24,7 @@ php artisan vendor:publish --tag=saci-assets
 - Route tab: name, uri, methods, domain, prefix, action/controller, parameters, middleware, where (on‑demand dumps)
 - Persistent UI state (collapsed, height, per-card/per-variable; survives refresh)
 - Resizable and accessible UI
- - CSP‑friendly: external CSS/JS with inline fallbacks and optional nonce
+- CSP‑friendly: external CSS/JS with inline fallbacks and optional nonce
 
 Env (optional):
 ```env
