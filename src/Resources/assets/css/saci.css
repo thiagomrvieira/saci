@@ -307,6 +307,23 @@
     border-color: transparent transparent rgba(0,0,0,0.92) transparent;
 }
 
+/* Symfony VarDumper colorized dump (headers removed), keep readable palette */
+#saci .sf-dump { background: transparent; color: #e5e7eb; font: 12px/1.4 Menlo, Consolas, monospace; overflow: auto; }
+#saci .sf-dump span.sf-dump-key { color: #93c5fd; }
+#saci .sf-dump .sf-dump-str { color: #86efac; }
+#saci .sf-dump .sf-dump-num { color: #fca5a5; }
+#saci .sf-dump .sf-dump-const { color: #fcd34d; }
+#saci .sf-dump .sf-dump-note { color: #a78bfa; }
+#saci .sf-dump .sf-dump-ref { color: #f472b6; }
+#saci .sf-dump .sf-dump-meta { color: #9ca3af; }
+#saci .sf-dump .sf-dump-public { color: #60a5fa; }
+#saci .sf-dump .sf-dump-protected { color: #34d399; }
+#saci .sf-dump .sf-dump-private { color: #fbbf24; }
+#saci .sf-dump .sf-dump-index { color: #a78bfa; }
+#saci .sf-dump .sf-dump-ellipsis { color: #9ca3af; }
+#saci .sf-dump .sf-dump-toggle { cursor: pointer; }
+#saci .sf-dump .sf-dump-expanded > .sf-dump { display: block; }
+
 /* Smooth transitions for Alpine popover */
 .saci-pop-enter, .saci-pop-leave {
     transition: opacity 160ms ease, transform 180ms cubic-bezier(.2,.8,.2,1);

@@ -23,10 +23,10 @@ class DumpManager
         $this->storage = $storage;
         $this->cloner = new VarCloner();
         if (method_exists($this->cloner, 'setMaxItems')) {
-            $this->cloner->setMaxItems((int) ($limits['max_items'] ?? 100));
+            $this->cloner->setMaxItems((int) ($limits['max_items'] ?? 100000));
         }
         if (method_exists($this->cloner, 'setMaxString')) {
-            $this->cloner->setMaxString((int) ($limits['max_string'] ?? 2000));
+            $this->cloner->setMaxString((int) ($limits['max_string'] ?? 100000));
         }
 
         $this->htmlDumper = new HtmlDumper();
@@ -47,7 +47,7 @@ class DumpManager
             'max_string' => (int) ($limits['max_string'] ?? 2000),
             'preview_max_items' => $previewMaxItems,
             'preview_max_string' => $previewMaxString,
-            'preview_max_chars' => (int) ($limits['preview_max_chars'] ?? 100),
+            'preview_max_chars' => (int) ($limits['preview_max_chars'] ?? 70),
         ];
     }
 
@@ -75,12 +75,30 @@ class DumpManager
     }
 
     /**
+     * Render HTML with all sections expanded and without inline header assets.
+     * This avoids relying on sfdump inline <script>/<style>, which do not execute via innerHTML.
+     */
+    public function renderHtmlExpanded(Data $data): string
+    {
+        $html = $this->renderHtml($data);
+
+        // Strip inline <script> and <style> headers added by HtmlDumper
+        $html = preg_replace('#<script[\s\S]*?</script>#i', '', $html) ?? $html;
+        $html = preg_replace('#<style[\s\S]*?</style>#i', '', $html) ?? $html;
+
+        // Force expanded view for all nodes
+        $html = str_replace('sf-dump-compact', 'sf-dump-expanded', $html);
+
+        return $html;
+    }
+
+    /**
      * Store a dump for a given request, returning its dump id or null when capped.
      */
     public function storeDump(string $requestId, mixed $value): ?string
     {
         $data = $this->clone($value);
-        $html = $this->renderHtml($data);
+        $html = $this->renderHtmlExpanded($data);
         $dumpId = $this->storage->generateDumpId();
         if (!$this->storage->storeHtml($requestId, $dumpId, $html)) {
             return null;

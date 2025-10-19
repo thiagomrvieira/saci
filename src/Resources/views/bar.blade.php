@@ -110,7 +110,16 @@
                     >{{ $requestMeta['display'] }}</strong></div>
                 @endif
             </div>
-            @include('saci::partials.resources', ['resources' => $resources ?? []])
+            @include('saci::partials.resources', ['resources' => $resources ?? [], 'requestId' => ($requestId ?? null)])
+        </div>
+        <div x-show="tab==='route'" x-cloak id="saci-tabpanel-route" role="tabpanel" aria-labelledby="saci-tab-route">
+            @php $route = $resources['route'] ?? []; @endphp
+            @include('saci::partials.card', [
+                'key' => 'request-route',
+                'title' => '',
+                'open' => true,
+                'content' => view('saci::partials._request-route', ['route' => $route, 'requestId' => ($requestId ?? null)])->render(),
+            ])
         </div>
     </div>
 

@@ -63,12 +63,12 @@ return [
     // Dump limits
     'dump' => [
         'max_depth' => env('SACI_DUMP_MAX_DEPTH', 5),
-        'max_items' => env('SACI_DUMP_MAX_ITEMS', 100),
-        'max_string' => env('SACI_DUMP_MAX_STRING', 2000),
+        'max_items' => env('SACI_DUMP_MAX_ITEMS', 100000),
+        'max_string' => env('SACI_DUMP_MAX_STRING', 100000),
         // Previews are intentionally smaller
         'preview_max_items' => env('SACI_PREVIEW_MAX_ITEMS', 8),
         'preview_max_string' => env('SACI_PREVIEW_MAX_STRING', 80),
-        'preview_max_chars' => env('SACI_PREVIEW_MAX_CHARS', 100),
+        'preview_max_chars' => env('SACI_PREVIEW_MAX_CHARS', 70),
     ],
 
     // Per-request caps and TTL for stored dumps

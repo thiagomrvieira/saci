@@ -4,6 +4,7 @@ namespace ThiagoVieira\Saci;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use ThiagoVieira\Saci\Support\DumpManager;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
@@ -29,6 +30,11 @@ class RequestResources
     protected array $authMeta = [];
 
     protected ?float $startTime = null;
+
+    public function __construct(
+        protected DumpManager $dumpManager,
+        protected TemplateTracker $tracker,
+    ) {}
 
     /**
      * Prepare for a new request and register container listener (once).
@@ -88,10 +94,22 @@ class RequestResources
             }
         }
 
+        $domain = method_exists($route, 'domain') ? $route->domain() : null;
+        $prefix = method_exists($route, 'getPrefix') ? $route->getPrefix() : null;
+        $parameters = method_exists($route, 'parameters') ? (array) $route->parameters() : [];
+        $action = method_exists($route, 'getAction') ? (array) $route->getAction() : [];
+        $compiled = method_exists($route, 'getCompiled') ? $route->getCompiled() : null;
+        $where = $action['where'] ?? [];
+
         $this->routeInfo = [
             'name' => method_exists($route, 'getName') ? $route->getName() : null,
             'uri' => method_exists($route, 'uri') ? $route->uri() : null,
             'methods' => method_exists($route, 'methods') ? $route->methods() : null,
+            'domain' => $domain,
+            'prefix' => $prefix,
+            'parameters' => $parameters,
+            'where' => $where,
+            'compiled' => $compiled,
             'middleware' => method_exists($route, 'gatherMiddleware') ? $route->gatherMiddleware() : [],
             'action' => $actionName,
             'controller' => $controller,
@@ -99,6 +117,9 @@ class RequestResources
             'controller_file' => $controllerFile,
             'controller_traits' => $controller && class_exists($controller) ? array_values(class_uses($controller)) : [],
         ];
+
+        // Build route-related dump previews
+        $this->buildRouteDumps();
 
         // Basic request meta
         $this->requestMeta = [
@@ -136,6 +157,24 @@ class RequestResources
             $this->requestMeta['raw'] = null;
         }
 
+        // Build previews and lazy dumps for headers/body
+        try {
+            $reqId = method_exists($this->tracker, 'getRequestId') ? $this->tracker->getRequestId() : null;
+            if ($reqId) {
+                // Headers
+                $headersAll = $this->requestMeta['headers_all'] ?? [];
+                $this->requestMeta['headers_preview'] = $this->dumpManager->buildPreview($headersAll);
+                $this->requestMeta['headers_dump_id'] = $this->dumpManager->storeDump($reqId, $headersAll);
+
+                // Raw body
+                $rawBody = $this->requestMeta['raw'] ?? '';
+                $this->requestMeta['raw_preview'] = $this->dumpManager->buildPreview($rawBody);
+                $this->requestMeta['raw_dump_id'] = $this->dumpManager->storeDump($reqId, $rawBody);
+            }
+        } catch (\Throwable $e) {
+            // ignore dump failures gracefully
+        }
+
         // Auth meta
         try {
             $defaultGuard = config('auth.defaults.guard');
@@ -149,6 +188,36 @@ class RequestResources
             ];
         } catch (\Throwable $e) {
             $this->authMeta = [ 'guard' => null, 'authenticated' => false ];
+        }
+    }
+
+    protected function buildRouteDumps(): void
+    {
+        try {
+            $reqId = method_exists($this->tracker, 'getRequestId') ? $this->tracker->getRequestId() : null;
+            if (!$reqId) return;
+
+            // Middleware stack
+            $mw = $this->routeInfo['middleware'] ?? [];
+            $this->routeInfo['middleware_preview'] = $this->dumpManager->buildPreview($mw);
+            $this->routeInfo['middleware_dump_id'] = $this->dumpManager->storeDump($reqId, $mw);
+
+            // Parameters
+            $params = $this->routeInfo['parameters'] ?? [];
+            $this->routeInfo['parameters_preview'] = $this->dumpManager->buildPreview($params);
+            $this->routeInfo['parameters_dump_id'] = $this->dumpManager->storeDump($reqId, $params);
+
+            // Where constraints
+            $where = $this->routeInfo['where'] ?? [];
+            $this->routeInfo['where_preview'] = $this->dumpManager->buildPreview($where);
+            $this->routeInfo['where_dump_id'] = $this->dumpManager->storeDump($reqId, $where);
+
+            // Compiled route
+            $compiled = $this->routeInfo['compiled'] ?? null;
+            $this->routeInfo['compiled_preview'] = $this->dumpManager->buildPreview($compiled);
+            $this->routeInfo['compiled_dump_id'] = $this->dumpManager->storeDump($reqId, $compiled);
+        } catch (\Throwable $e) {
+            // ignore
         }
     }
 

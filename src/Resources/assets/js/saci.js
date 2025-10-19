@@ -268,6 +268,35 @@
 
             /** Handles click on a variable row with lazy dump loading. @param {HTMLTableRowElement} row */
             async onVarRowClick(row) {
+                const inline = row.querySelector('.saci-dump-inline');
+                if (inline) {
+                    const dumpId = inline.getAttribute('data-dump-id');
+                    const requestId = inline.getAttribute('data-request-id');
+                    const content = inline.querySelector('.saci-dump-content');
+                    const loading = inline.querySelector('.saci-dump-loading');
+                    if (dumpId && requestId && content && content.childElementCount === 0) {
+                        try {
+                            if (loading) loading.style.display = 'block';
+                            const html = await dumps.fetchHtml(requestId, dumpId);
+                            content.innerHTML = html;
+                            const previewSpan = row.querySelector('.saci-inline-preview');
+                            if (previewSpan) previewSpan.style.display = 'none';
+                            inline.style.display = 'block';
+                        } catch (e) {
+                            if (content) content.textContent = 'Failed to load dump';
+                        } finally {
+                            if (loading) loading.style.display = 'none';
+                        }
+                        return;
+                    } else {
+                        const previewSpan = row.querySelector('.saci-inline-preview');
+                        const isVisible = inline.style.display !== 'none';
+                        inline.style.display = isVisible ? 'none' : 'block';
+                        if (previewSpan) previewSpan.style.display = isVisible ? 'inline' : 'none';
+                        return;
+                    }
+                }
+
                 const valueRow = row.nextElementSibling; if (!valueRow) return;
                 const container = valueRow.querySelector('.saci-dump');
                 const hasDump = !!(container && container.getAttribute('data-dump-id'));
@@ -302,6 +331,21 @@
 
             /** Persists current tab selection. */
             saveTab() { try { storage.set('saci.tab', this.tab); } catch (e) {} },
+
+            /** Header click: ignore resize click-throughs, else toggle. */
+            onHeaderClick() {
+                if (this.isResizing || this.didResize) {
+                    this.didResize = false;
+                    return;
+                }
+                this.toggle();
+            },
+
+            /** Selects a tab and persists. */
+            selectTab(name) {
+                this.tab = name;
+                this.saveTab();
+            },
 
             /** Expands all cards and rows. */
             expandAll() {

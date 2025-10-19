@@ -1,6 +1,6 @@
 <div
     id="saci-header"
-    @click.stop="if(Alpine.store('saci').isResizing || Alpine.store('saci').didResize){ Alpine.store('saci').didResize=false; return; } toggle()"
+    @click.stop="onHeaderClick()"
     @keydown.enter.prevent="toggle()"
     @keydown.space.prevent="toggle()"
     tabindex="0"
@@ -18,8 +18,10 @@
                 aria-controls="saci-tabpanel-views"
                 id="saci-tab-views"
                 type="button"
-                @click.stop="tab='views'; saveTab()"
-            >Views ({{ $total }})</button>
+                @click.stop="selectTab('views')"
+            >
+                Views ({{ $total }})
+            </button>
             <button
                 class="saci-tab"
                 role="tab"
@@ -28,8 +30,22 @@
                 aria-controls="saci-tabpanel-request"
                 id="saci-tab-request"
                 type="button"
-                @click.stop="tab='resources'; saveTab()"
-            >Request</button>
+                @click.stop="selectTab('resources')"
+            >
+                Request
+            </button>
+            <button
+                class="saci-tab"
+                role="tab"
+                :class="{ 'saci-tab--active': (tab==='route') }"
+                :aria-selected="(tab==='route')"
+                aria-controls="saci-tabpanel-route"
+                id="saci-tab-route"
+                type="button"
+                @click.stop="selectTab('route')"
+            >
+                Route
+            </button>
         </div>
     </div>
     <div id="saci-controls" class="saci-controls">
