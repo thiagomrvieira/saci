@@ -26,10 +26,10 @@
         @endforeach
 
         @foreach([
-            'parameters' => ['preview' => $route['parameters_preview'] ?? '', 'dump_id' => $route['parameters_dump_id'] ?? null],
-            'middleware' => ['preview' => $route['middleware_preview'] ?? '', 'dump_id' => $route['middleware_dump_id'] ?? null],
-            'where' => ['preview' => $route['where_preview'] ?? '', 'dump_id' => $route['where_dump_id'] ?? null],
-            'compiled' => ['preview' => $route['compiled_preview'] ?? '', 'dump_id' => $route['compiled_dump_id'] ?? null],
+            'parameters' => ['preview' => $route['parameters_preview'] ?? '[empty]', 'dump_id' => $route['parameters_dump_id'] ?? null, 'inline_html' => $route['parameters_inline_html'] ?? null],
+            'middleware' => ['preview' => $route['middleware_preview'] ?? '[empty]', 'dump_id' => $route['middleware_dump_id'] ?? null, 'inline_html' => $route['middleware_inline_html'] ?? null],
+            'where' => ['preview' => $route['where_preview'] ?? '[empty]', 'dump_id' => $route['where_dump_id'] ?? null, 'inline_html' => $route['where_inline_html'] ?? null],
+            'compiled' => ['preview' => $route['compiled_preview'] ?? '[empty]', 'dump_id' => $route['compiled_dump_id'] ?? null, 'inline_html' => $route['compiled_inline_html'] ?? null],
         ] as $label => $info)
             <tr
                 data-saci-var-key="route.{{ $label }}"
@@ -50,7 +50,7 @@
                         <div class="saci-dump-loading" style="display:none;">
                             Loading…
                         </div>
-                        <div class="saci-dump-content"></div>
+                        <div class="saci-dump-content">{!! $info['inline_html'] ?? '' !!}</div>
                     </div>
                 </td>
             </tr>

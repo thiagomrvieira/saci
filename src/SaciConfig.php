@@ -17,7 +17,11 @@ class SaciConfig
      */
     public static function isEnabled(): bool
     {
-        return self::get('enabled', true);
+        $enabled = self::get('enabled', null);
+        if ($enabled === null) {
+            return (bool) config('app.debug');
+        }
+        return (bool) $enabled;
     }
 
     /**

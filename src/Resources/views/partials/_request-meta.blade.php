@@ -26,11 +26,11 @@
         @php $requestId = $requestId ?? null; @endphp
 
         @foreach([
-            'headers' => ['preview' => $req['headers_preview'] ?? '', 'dump_id' => $req['headers_dump_id'] ?? null],
-            'body' => ['preview' => $req['raw_preview'] ?? ($req['raw'] ?? ''), 'dump_id' => $req['raw_dump_id'] ?? null],
-            'query' => ['preview' => $req['query_preview'] ?? '', 'dump_id' => $req['query_dump_id'] ?? null],
-            'cookies' => ['preview' => $req['cookies_preview'] ?? '', 'dump_id' => $req['cookies_dump_id'] ?? null],
-            'session' => ['preview' => $req['session_preview'] ?? '', 'dump_id' => $req['session_dump_id'] ?? null],
+            'headers' => ['preview' => $req['headers_preview'] ?? '', 'dump_id' => $req['headers_dump_id'] ?? null, 'inline_html' => $req['headers_inline_html'] ?? null],
+            'body' => ['preview' => $req['raw_preview'] ?? ($req['raw'] ?? ''), 'dump_id' => $req['raw_dump_id'] ?? null, 'inline_html' => $req['raw_inline_html'] ?? null],
+            'query' => ['preview' => $req['query_preview'] ?? '', 'dump_id' => $req['query_dump_id'] ?? null, 'inline_html' => $req['query_inline_html'] ?? null],
+            'cookies' => ['preview' => $req['cookies_preview'] ?? '', 'dump_id' => $req['cookies_dump_id'] ?? null, 'inline_html' => $req['cookies_inline_html'] ?? null],
+            'session' => ['preview' => $req['session_preview'] ?? '', 'dump_id' => $req['session_dump_id'] ?? null, 'inline_html' => $req['session_inline_html'] ?? null],
         ] as $label => $info)
             <tr
                 data-saci-var-key="request.{{ $label }}"
@@ -51,7 +51,7 @@
                         <div class="saci-dump-loading" style="display:none;">
                             Loading…
                         </div>
-                        <div class="saci-dump-content"></div>
+                        <div class="saci-dump-content">{!! $info['inline_html'] ?? '' !!}</div>
                     </div>
                 </td>
             </tr>

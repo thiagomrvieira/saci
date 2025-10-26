@@ -1,4 +1,4 @@
-<div class="saci-card" data-saci-card-key="{{ $key ?? '' }}">
+<div class="saci-card {{ (!empty($open) || empty($title)) ? 'is-open' : '' }}" data-saci-card-key="{{ $key ?? '' }}">
     <div
         class="saci-card-toggle"
         @if(!empty($title))

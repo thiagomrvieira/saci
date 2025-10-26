@@ -39,6 +39,17 @@ class RequestValidator
         return true;
     }
 
+    /**
+     * Determine if static assets can be served.
+     * Less strict path check than dumps; used for CSS/JS under /__saci/assets.
+     */
+    public function shouldServeAssets(Request $request): bool
+    {
+        if (!$this->isEnabled()) return false;
+        if (!$this->isAllowedClient($request)) return false;
+        return true;
+    }
+
     protected function isEnabled(): bool
     {
         $enabled = SaciConfig::get('enabled');

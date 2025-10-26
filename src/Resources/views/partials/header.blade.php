@@ -57,7 +57,7 @@
             <template x-if="tab==='views'">
                 <div class="saci-summary" style="margin:0;">
                     @if(!empty($viewsMeta))
-                        <div class="saci-summary-right">{{ $total }} views loaded in: <strong
+                        <div class="saci-summary-right">{{ $total }} views loaded in <strong
                             class="{{ $viewsMeta['class'] ?? '' }}"
                             data-saci-tooltip="{{ $viewsMeta['tooltip'] ?? '' }}"
                             tabindex="0"
@@ -99,7 +99,7 @@
             <template x-if="tab==='views'">
                 <span>
                     @if(!empty($viewsMeta))
-                        {{ $total }} views loaded in:
+                        {{ $total }} views loaded in
                         <strong
                             class="{{ $viewsMeta['class'] ?? '' }}"
                             data-saci-tooltip="{{ $viewsMeta['tooltip'] ?? '' }}"

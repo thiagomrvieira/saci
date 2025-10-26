@@ -166,26 +166,31 @@ class RequestResources
                 $headersAll = $this->requestMeta['headers_all'] ?? [];
                 $this->requestMeta['headers_preview'] = $this->dumpManager->buildPreview($headersAll);
                 $this->requestMeta['headers_dump_id'] = $this->dumpManager->storeDump($reqId, $headersAll);
+                $this->requestMeta['headers_inline_html'] = $this->buildInlineHtmlIfSmall($headersAll);
 
                 // Raw body
                 $rawBody = $this->requestMeta['raw'] ?? '';
                 $this->requestMeta['raw_preview'] = $this->dumpManager->buildPreview($rawBody);
                 $this->requestMeta['raw_dump_id'] = $this->dumpManager->storeDump($reqId, $rawBody);
+                $this->requestMeta['raw_inline_html'] = $this->buildInlineHtmlIfSmall($rawBody);
 
                 // Query string params
                 $query = $this->requestMeta['query'] ?? [];
                 $this->requestMeta['query_preview'] = $this->dumpManager->buildPreview($query);
                 $this->requestMeta['query_dump_id'] = $this->dumpManager->storeDump($reqId, $query);
+                $this->requestMeta['query_inline_html'] = $this->buildInlineHtmlIfSmall($query);
 
                 // Cookies
                 $cookies = $this->requestMeta['cookies'] ?? [];
                 $this->requestMeta['cookies_preview'] = $this->dumpManager->buildPreview($cookies);
                 $this->requestMeta['cookies_dump_id'] = $this->dumpManager->storeDump($reqId, $cookies);
+                $this->requestMeta['cookies_inline_html'] = $this->buildInlineHtmlIfSmall($cookies);
 
                 // Session
                 $session = $this->requestMeta['session'] ?? [];
                 $this->requestMeta['session_preview'] = $this->dumpManager->buildPreview($session);
                 $this->requestMeta['session_dump_id'] = $this->dumpManager->storeDump($reqId, $session);
+                $this->requestMeta['session_inline_html'] = $this->buildInlineHtmlIfSmall($session);
             }
         } catch (\Throwable $e) {
             // ignore dump failures gracefully
@@ -217,21 +222,25 @@ class RequestResources
             $mw = $this->routeInfo['middleware'] ?? [];
             $this->routeInfo['middleware_preview'] = $this->dumpManager->buildPreview($mw);
             $this->routeInfo['middleware_dump_id'] = $this->dumpManager->storeDump($reqId, $mw);
+            $this->routeInfo['middleware_inline_html'] = $this->buildInlineHtmlIfSmall($mw);
 
             // Parameters
             $params = $this->routeInfo['parameters'] ?? [];
             $this->routeInfo['parameters_preview'] = $this->dumpManager->buildPreview($params);
             $this->routeInfo['parameters_dump_id'] = $this->dumpManager->storeDump($reqId, $params);
+            $this->routeInfo['parameters_inline_html'] = $this->buildInlineHtmlIfSmall($params);
 
             // Where constraints
             $where = $this->routeInfo['where'] ?? [];
             $this->routeInfo['where_preview'] = $this->dumpManager->buildPreview($where);
             $this->routeInfo['where_dump_id'] = $this->dumpManager->storeDump($reqId, $where);
+            $this->routeInfo['where_inline_html'] = $this->buildInlineHtmlIfSmall($where);
 
             // Compiled route
             $compiled = $this->routeInfo['compiled'] ?? null;
             $this->routeInfo['compiled_preview'] = $this->dumpManager->buildPreview($compiled);
             $this->routeInfo['compiled_dump_id'] = $this->dumpManager->storeDump($reqId, $compiled);
+            $this->routeInfo['compiled_inline_html'] = $this->buildInlineHtmlIfSmall($compiled);
         } catch (\Throwable $e) {
             // ignore
         }
@@ -252,6 +261,26 @@ class RequestResources
             'headers' => $response->headers->all(),
             'duration_ms' => $durationMs,
         ];
+    }
+
+    /**
+     * Build a small, fully inlined HTML dump for fast UI when values are tiny.
+     */
+    protected function buildInlineHtmlIfSmall(mixed $value): ?string
+    {
+        try {
+            // Fast path for scalars and small arrays/objects based on preview length
+            $preview = $this->dumpManager->buildPreview($value);
+            // Threshold heurística: até 120 chars de preview é aceitável inline
+            if (mb_strlen((string) $preview) <= 120) {
+                $data = $this->dumpManager->clonePreview($value);
+                // Reutiliza o HTML dumper (cores/coerência) mas sem cabeçalhos inline
+                return $this->dumpManager->renderHtml($data);
+            }
+        } catch (\Throwable $e) {
+            return null;
+        }
+        return null;
     }
 
     /**

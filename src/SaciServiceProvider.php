@@ -9,6 +9,7 @@ use ThiagoVieira\Saci\SaciConfig;
 use ThiagoVieira\Saci\Support\DumpManager;
 use ThiagoVieira\Saci\Support\DumpStorage;
 use ThiagoVieira\Saci\Http\Controllers\DumpController;
+use ThiagoVieira\Saci\Http\Controllers\AssetsController;
 
 class SaciServiceProvider extends ServiceProvider
 {
@@ -75,8 +76,16 @@ class SaciServiceProvider extends ServiceProvider
     protected function registerRoutes(): void
     {
         $router = $this->app['router'];
-        $router->get('/__saci/dump/{requestId}/{dumpId}', [DumpController::class, 'show'])
-            ->middleware('web');
+        $router->get('/__saci/dump/{requestId}/{dumpId}', [DumpController::class, 'show'])->middleware('web');
+
+        // Always register asset routes; controller guards serving based on config and client
+        $router->group(['prefix' => '/__saci/assets', 'middleware' => ['web']], function($router) {
+            $router->get('/saci.css', [AssetsController::class, 'css']);
+            $router->get('/saci.js', [AssetsController::class, 'js']);
+            // Extensionless variants to avoid webserver static-file interception
+            $router->get('/css', [AssetsController::class, 'css']);
+            $router->get('/js', [AssetsController::class, 'js']);
+        });
     }
 
 

@@ -89,4 +89,7 @@ return [
     |
     */
     'track_performance' => env('SACI_TRACK_PERFORMANCE', true)
+    ,
+    // Prefer internal routes for assets even if published assets exist
+    'force_internal_assets' => env('SACI_FORCE_INTERNAL_ASSETS', false)
 ];

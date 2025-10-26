@@ -20,6 +20,11 @@
         }
     ],
     "minimum-stability": "dev",
+    "scripts": {
+        "saci:minify": [
+            "@php bin/minify.php"
+        ]
+    },
     "extra": {
         "laravel": {
             "providers": [

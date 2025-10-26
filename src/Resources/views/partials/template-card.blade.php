@@ -5,9 +5,11 @@
             $viewMeta = \ThiagoVieira\Saci\Support\PerformanceFormatter::formatAndClassifyView((float) $template['duration']);
             if ($viewMeta) {
                 $headerRight .= ' <span class="saci-badge saci-badge-danger saci-badge-ms ' . $viewMeta['class'] . '" '
-                    . '@mouseenter="showTooltip($event, \'' . e((string) $viewMeta['tooltip']) . '\')" '
+                    . 'data-saci-tooltip="' . e((string) $viewMeta['tooltip']) . '" '
+                    . 'tabindex="0" '
+                    . '@mouseenter="showTooltip($event, \' ' . e((string) $viewMeta['tooltip']) . ' \' )" '
                     . '@mouseleave="hideTooltip()" '
-                    . '@focus="showTooltip($event, \'' . e((string) $viewMeta['tooltip']) . '\')" '
+                    . '@focus="showTooltip($event, \' ' . e((string) $viewMeta['tooltip']) . ' \' )" '
                     . '@blur="hideTooltip()"'
                     . '>' . e((string) $viewMeta['display']) . '</span>';
             }
