@@ -5,9 +5,6 @@
             role="button"
             tabindex="0"
             aria-expanded="{{ !empty($open) ? 'true' : 'false' }}"
-            @click.stop="toggleCard($el.parentElement)"
-            @keydown.enter.prevent="$el.click()"
-            @keydown.space.prevent="$el.click()"
         @endif
     >
         @if(!empty($title))
@@ -17,7 +14,7 @@
             <div class="saci-meta">{!! $headerRight !!}</div>
         @endif
     </div>
-    <div class="saci-card-content" @if(empty($title)) x-cloak @endif style="display: {{ (!empty($open) || empty($title)) ? 'block' : 'none' }};">
+    <div class="saci-card-content" style="display: {{ (!empty($open) || empty($title)) ? 'block' : 'none' }};">
         {!! $content ?? '' !!}
     </div>
 </div>

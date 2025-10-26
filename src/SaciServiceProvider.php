@@ -3,7 +3,6 @@
 namespace ThiagoVieira\Saci;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\Http\Kernel;
 use ThiagoVieira\Saci\SaciConfig;
 use ThiagoVieira\Saci\Support\DumpManager;

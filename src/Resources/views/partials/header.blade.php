@@ -1,11 +1,8 @@
 <div
     id="saci-header"
-    @click.stop="onHeaderClick()"
-    @keydown.enter.prevent="toggle()"
-    @keydown.space.prevent="toggle()"
     tabindex="0"
     role="button"
-    :aria-expanded="!collapsed"
+    aria-expanded="false"
 >
     <div class="saci-title">
         <span>Saci</span>
@@ -13,36 +10,30 @@
             <button
                 class="saci-tab"
                 role="tab"
-                :class="{ 'saci-tab--active': (tab==='views') }"
-                :aria-selected="(tab==='views')"
+                aria-selected="false"
                 aria-controls="saci-tabpanel-views"
                 id="saci-tab-views"
                 type="button"
-                @click.stop="selectTab('views')"
             >
                 Views
             </button>
             <button
                 class="saci-tab"
                 role="tab"
-                :class="{ 'saci-tab--active': (tab==='resources') }"
-                :aria-selected="(tab==='resources')"
+                aria-selected="false"
                 aria-controls="saci-tabpanel-request"
                 id="saci-tab-request"
                 type="button"
-                @click.stop="selectTab('resources')"
             >
                 Request
             </button>
             <button
                 class="saci-tab"
                 role="tab"
-                :class="{ 'saci-tab--active': (tab==='route') }"
-                :aria-selected="(tab==='route')"
+                aria-selected="false"
                 aria-controls="saci-tabpanel-route"
                 id="saci-tab-route"
                 type="button"
-                @click.stop="selectTab('route')"
             >
                 Route
             </button>
@@ -51,40 +42,30 @@
     <div id="saci-controls" class="saci-controls">
         <div
             id="saci-controls-buttons"
-            x-show="!collapsed"
-            x-cloak
         >
-            <template x-if="tab==='views'">
+            <template>
                 <div class="saci-summary" style="margin:0;">
                     @if(!empty($viewsMeta))
                         <div class="saci-summary-right">{{ $total }} views loaded in <strong
                             class="{{ $viewsMeta['class'] ?? '' }}"
                             data-saci-tooltip="{{ $viewsMeta['tooltip'] ?? '' }}"
                             tabindex="0"
-                            @mouseenter="showTooltip($event)"
-                            @mouseleave="hideTooltip()"
-                            @focus="showTooltip($event)"
-                            @blur="hideTooltip()"
                         >{{ $viewsMeta['display'] ?? '' }}</strong></div>
                     @endif
                 </div>
             </template>
-            <template x-if="tab==='resources'">
+            <template>
                 <div class="saci-summary" style="margin:0;">
                     @if(!empty($requestMeta))
                         <div class="saci-summary-right">Response time: <strong
                             class="{{ $requestMeta['class'] ?? '' }}"
                             data-saci-tooltip="{{ $requestMeta['tooltip'] ?? '' }}"
                             tabindex="0"
-                            @mouseenter="showTooltip($event)"
-                            @mouseleave="hideTooltip()"
-                            @focus="showTooltip($event)"
-                            @blur="hideTooltip()"
                         >{{ $requestMeta['display'] ?? '' }}</strong></div>
                     @endif
                 </div>
             </template>
-            <template x-if="tab==='route'">
+            <template>
                 <div class="saci-summary" style="margin:0;">
                     <div class="saci-summary-left">{{ $method }} {{ $uri }}</div>
                 </div>
@@ -93,10 +74,8 @@
         <span
             id="saci-controls-version"
             class="saci-subtle"
-            x-show="collapsed"
-            x-cloak
         >
-            <template x-if="tab==='views'">
+            <template>
                 <span>
                     @if(!empty($viewsMeta))
                         {{ $total }} views loaded in
@@ -104,15 +83,11 @@
                             class="{{ $viewsMeta['class'] ?? '' }}"
                             data-saci-tooltip="{{ $viewsMeta['tooltip'] ?? '' }}"
                             tabindex="0"
-                            @mouseenter="showTooltip($event)"
-                            @mouseleave="hideTooltip()"
-                            @focus="showTooltip($event)"
-                            @blur="hideTooltip()"
                         >{{ $viewsMeta['display'] ?? '' }}</strong>
                     @endif
                 </span>
             </template>
-            <template x-if="tab==='resources'">
+            <template>
                 <span>
                     @if(!empty($requestMeta))
                         Response time:
@@ -120,15 +95,11 @@
                             class="{{ $requestMeta['class'] ?? '' }}"
                             data-saci-tooltip="{{ $requestMeta['tooltip'] ?? '' }}"
                             tabindex="0"
-                            @mouseenter="showTooltip($event)"
-                            @mouseleave="hideTooltip()"
-                            @focus="showTooltip($event)"
-                            @blur="hideTooltip()"
                         >{{ $requestMeta['display'] ?? '' }}</strong>
                     @endif
                 </span>
             </template>
-            <template x-if="tab==='route'">
+            <template>
                 <span>
                     {{ $method }} {{ $uri }}
                 </span>
@@ -137,7 +108,8 @@
         <div
             id="saci-arrow"
             class="saci-subtle"
-            x-text="collapsed ? '▶' : '▼'"
+            >
+            ▶
         ></div>
     </div>
 </div>

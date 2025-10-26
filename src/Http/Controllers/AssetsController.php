@@ -4,10 +4,8 @@ namespace ThiagoVieira\Saci\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Response;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use ThiagoVieira\Saci\RequestValidator;
-use ThiagoVieira\Saci\SaciInfo;
 
 class AssetsController extends Controller
 {

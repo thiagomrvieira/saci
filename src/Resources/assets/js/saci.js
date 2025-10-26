@@ -1,4 +1,4 @@
- /* Saci Debug Bar JS (requires Alpine.js) */
+ /* Saci Debug Bar JS (vanilla) */
 (function(){
     /**
      * LocalStorage helpers with safe fallbacks.
@@ -46,7 +46,7 @@
     /** Clamp a number between bounds. @param {number} v @param {number} lo @param {number} hi @returns {number} */
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-    /** Alpine component factory for the Saci bar. @returns {object} */
+    /** Component factory for the Saci bar (reused by vanilla init). @returns {object} */
     window.saciBar = function() {
         return {
             collapsed: true,
@@ -309,8 +309,21 @@
                 } catch (e) {}
             },
 
-            /** Handles click on a variable row with lazy dump loading. @param {HTMLTableRowElement} row */
-            async onVarRowClick(row) {
+            /** Determine if a row click should be ignored (click inside dump content/toggles). */
+            shouldIgnoreRowClick(evt) {
+                try {
+                    const target = evt && evt.target ? evt.target : null;
+                    if (!target || !target.closest) return false;
+                    const ignoreSelector = '.saci-dump, .saci-dump-inline, .saci-dump-content, .sf-dump, [data-saci-stop-row-toggle]';
+                    return !!target.closest(ignoreSelector);
+                } catch (e) { return false; }
+            },
+
+            /** Handles click on a variable row with lazy dump loading. @param {HTMLTableRowElement} row @param {MouseEvent=} evt */
+            async onVarRowClick(row, evt) {
+                if (evt && this.shouldIgnoreRowClick(evt)) {
+                    return;
+                }
                 const inline = row.querySelector('.saci-dump-inline');
                 if (inline) {
                     const dumpId = inline.getAttribute('data-dump-id');
@@ -449,26 +462,16 @@
         };
     };
 
-    // Robust Alpine registration (works regardless of load order). If Alpine is not present,
-    // install a lightweight vanilla fallback that removes x-cloak and wires basic tab behavior.
-    const registerWithAlpine = () => {
-        try {
-            if (window.Alpine && typeof window.Alpine.data === 'function') {
-                window.Alpine.data('saciBar', window.saciBar);
-                return true;
-            }
-        } catch (e) {}
-        return false;
-    };
-
-    const setupVanillaFallback = () => {
+    // Vanilla-only setup that wires the bar behavior without Alpine
+    const setupVanilla = () => {
         try {
             const root = document.getElementById('saci');
             if (!root) return;
             const api = window.saciBar();
             // Shared click-suppression flag to avoid collapsing after drag
             let suppressClickOnce = false;
-            // Remove x-cloak elements under #saci so content becomes visible
+            // Ensure content starts hidden until expanded by code
+            // Any x-cloak remnants are removed for safety
             root.querySelectorAll('[x-cloak]').forEach(el => { el.removeAttribute('x-cloak'); });
 
             // Apply persisted height if any
@@ -627,10 +630,14 @@
                 root.querySelectorAll('#saci-content tr[data-saci-var-key]').forEach(row => {
                     if (row.__saci_bound) return;
                     row.__saci_bound = true;
-                    row.addEventListener('click', (ev) => { ev.stopPropagation(); api.onVarRowClick(row); });
+                    row.addEventListener('click', (ev) => { ev.stopPropagation(); api.onVarRowClick(row, ev); });
                     row.setAttribute('tabindex', '0');
                     row.addEventListener('keydown', (ev) => {
-                        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); api.onVarRowClick(row); }
+                        if (ev.key === 'Enter' || ev.key === ' ') {
+                            if (api.shouldIgnoreRowClick(ev)) return;
+                            ev.preventDefault();
+                            api.onVarRowClick(row, ev);
+                        }
                     });
                 });
             };
@@ -803,7 +810,7 @@
             attachVarRowListeners();
             restoreVarRowsFromStorage();
 
-            // Vanilla tooltips (since Alpine is not present)
+            // Vanilla tooltips
             const ensurePopover = () => {
                 let el = document.getElementById('saci-popover');
                 if (!el) {
@@ -873,13 +880,11 @@
         } catch (e) {}
     };
 
-    if (!registerWithAlpine()) {
-        // Alpine not present; run vanilla fallback at DOM ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', setupVanillaFallback);
-        } else {
-            setupVanillaFallback();
-        }
+    // Always run vanilla setup
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupVanilla);
+    } else {
+        setupVanilla();
     }
 })();
 

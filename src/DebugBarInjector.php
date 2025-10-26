@@ -15,10 +15,7 @@ class DebugBarInjector
     protected TemplateTracker $tracker;
     protected RequestResources $resources;
 
-    /**
-     * Cache the inline CSS content to avoid reading the file on every request.
-     */
-    protected static ?string $cachedInlineCss = null;
+
 
     /**
      * Create a new debug bar injector instance.
@@ -79,8 +76,6 @@ class DebugBarInjector
                 'total' => $this->tracker->getTotal(),
                 'version' => SaciInfo::getVersion(),
                 'author' => SaciInfo::getAuthor(),
-                'inlineCss' => $this->getInlineCss(),
-                'inlineJs' => $this->getInlineJs(),
                 'resources' => $this->resources->getData(),
             ])->render();
         } catch (\Exception $e) {
@@ -90,54 +85,5 @@ class DebugBarInjector
         }
     }
 
-    /**
-     * Load CSS content from the package for inline usage when publish is not performed.
-     */
-    protected function getInlineCss(): ?string
-    {
-        if (self::$cachedInlineCss !== null) {
-            return self::$cachedInlineCss === '' ? null : self::$cachedInlineCss;
-        }
 
-        $path = __DIR__ . '/Resources/assets/css/saci.css';
-        if (!is_file($path)) {
-            self::$cachedInlineCss = '';
-            return null;
-        }
-
-        try {
-            $css = @file_get_contents($path);
-            self::$cachedInlineCss = $css !== false ? $css : '';
-        } catch (\Throwable $e) {
-            self::$cachedInlineCss = '';
-        }
-
-        return self::$cachedInlineCss === '' ? null : self::$cachedInlineCss;
-    }
-
-    /**
-     * Load JS content from the package for inline usage when publish is not performed.
-     */
-    protected function getInlineJs(): ?string
-    {
-        static $cachedInlineJs = null;
-        if ($cachedInlineJs !== null) {
-            return $cachedInlineJs === '' ? null : $cachedInlineJs;
-        }
-
-        $path = __DIR__ . '/Resources/assets/js/saci.js';
-        if (!is_file($path)) {
-            $cachedInlineJs = '';
-            return null;
-        }
-
-        try {
-            $js = @file_get_contents($path);
-            $cachedInlineJs = $js !== false ? $js : '';
-        } catch (\Throwable $e) {
-            $cachedInlineJs = '';
-        }
-
-        return $cachedInlineJs === '' ? null : $cachedInlineJs;
-    }
 }
