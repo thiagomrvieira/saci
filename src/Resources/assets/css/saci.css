@@ -163,12 +163,13 @@
 .saci-col-name { width: 28%; }
 .saci-col-type { width: 20%; }
 .saci-col-level { width: 100px; }
-.saci-col-time { width: 110px; }
+.saci-col-time { width: 128px; }
 .saci-col-message { width: 50%; }
 .saci-col-context { width: 50%; }
 .saci-table .saci-actions { width: 110px; white-space: nowrap; text-align: right; position: sticky; right: 0; box-shadow: -1px 0 0 rgba(148,163,184,0.08); }
 .saci-table tbody tr { border-bottom: 1px solid rgba(148,163,184,0.12); }
 .saci-preview { padding-right: 110px; color: #a0aec0; word-break: break-word; white-space: normal; }
+.saci-table-logs .saci-preview { padding-right: 0; }
 .saci-var-name { color: #f6e05e; font-family: 'Fira Code', monospace; }
 .saci-var-type { color: #b794f4; }
 

@@ -1,7 +1,7 @@
 @php
     /**
      * Logs panel view
-     * 
+     *
      * @var array<int,array{
      *     level:string,
      *     time:string,
@@ -27,6 +27,3 @@
         ])->render(),
     ])
 </div>
-
-
-

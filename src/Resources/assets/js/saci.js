@@ -175,7 +175,9 @@
                     const dumpId = inline.getAttribute('data-dump-id');
                     const requestId = inline.getAttribute('data-request-id');
                     const content = inline.querySelector('.saci-dump-content');
-                    if (dumpId && requestId && content && content.childElementCount === 0) {
+                    // Check if content is truly empty (no HTML elements AND no text)
+                    const isEmpty = content && content.childElementCount === 0 && !content.textContent.trim();
+                    if (dumpId && requestId && isEmpty) {
                         this.loadDumpInto(inline, requestId, dumpId);
                     }
                     return;
@@ -188,7 +190,8 @@
                 const dumpId = container.getAttribute('data-dump-id');
                 const requestId = container.getAttribute('data-request-id');
                 const content = container.querySelector('.saci-dump-content');
-                if (dumpId && requestId && content && content.childElementCount === 0) {
+                const isEmpty = content && content.childElementCount === 0 && !content.textContent.trim();
+                if (dumpId && requestId && isEmpty) {
                     this.loadDumpInto(container, requestId, dumpId);
                 }
             },
@@ -468,19 +471,22 @@
                     const cell = inline.closest('.saci-preview');
                     const preview = cell ? cell.querySelector('.saci-inline-preview') : null;
                     if (preview) preview.style.display = 'none';
+                    inline.classList.remove('saci-hidden');
                     inline.style.display = 'block';
                     const dumpId = inline.getAttribute('data-dump-id');
                     const requestId = inline.getAttribute('data-request-id');
                     const content = inline.querySelector('.saci-dump-content');
                     const loading = inline.querySelector('.saci-dump-loading');
-                    // Always ensure there is visible content: use preview text immediately
-                    if (content && content.childElementCount === 0 && preview && preview.textContent) {
+                    // Check if content is truly empty (no HTML elements AND no text)
+                    const isEmpty = content && content.childElementCount === 0 && !content.textContent.trim();
+                    // Always ensure there is visible content: use preview text immediately if empty
+                    if (isEmpty && preview && preview.textContent) {
                         content.textContent = preview.textContent;
                     }
-                    // If a dump is available, load it async and replace the preview text
-                    if (dumpId && requestId && content && content.childElementCount === 0) {
-                        if (loading) loading.style.display = 'block';
-                        this.loadDumpInto(inline, requestId, dumpId).finally(() => { if (loading) loading.style.display = 'none'; });
+                    // If a dump is available and content is empty, load it async and replace the preview text
+                    if (dumpId && requestId && isEmpty) {
+                        if (loading) loading.classList.remove('saci-hidden');
+                        this.loadDumpInto(inline, requestId, dumpId).finally(() => { if (loading) loading.classList.add('saci-hidden'); });
                     }
                 });
                 try {
@@ -506,6 +512,7 @@
                 inlines.forEach(inline => {
                     const cell = inline.closest('.saci-preview');
                     const preview = cell ? cell.querySelector('.saci-inline-preview') : null;
+                    inline.classList.add('saci-hidden');
                     inline.style.display = 'none';
                     if (preview) preview.style.display = 'inline';
                 });
@@ -534,7 +541,10 @@
                     row.querySelectorAll('.saci-preview').forEach(cell => {
                         const cellInline = cell.querySelector('.saci-dump-inline');
                         const cellPreview = cell.querySelector('.saci-inline-preview');
-                        if (cellInline) cellInline.style.display = 'none';
+                        if (cellInline) {
+                            cellInline.classList.add('saci-hidden');
+                            cellInline.style.display = 'none';
+                        }
                         if (cellPreview) cellPreview.style.display = 'inline';
                     });
                     try {
@@ -575,14 +585,18 @@
                     const dumpId = container.getAttribute('data-dump-id');
                     const requestId = container.getAttribute('data-request-id');
                     const content = container.querySelector('.saci-dump-content');
-                    if (content && content.childElementCount === 0) {
+                    const isEmpty = content && content.childElementCount === 0 && !content.textContent.trim();
+                    if (isEmpty) {
                         // Open row immediately and show preview/loader, then load async for better perceived performance
                         this.toggleVarRow(row);
                         const loading = container.querySelector('.saci-dump-loading');
-                        if (loading) loading.style.display = 'block';
+                        if (loading) {
+                            loading.classList.remove('saci-hidden');
+                            loading.style.display = 'block';
+                        }
                         // Show preview right away if available
                         const previewSpan = row.querySelector('.saci-inline-preview');
-                        if (previewSpan && previewSpan.textContent && content.childElementCount === 0) {
+                        if (previewSpan && previewSpan.textContent) {
                             content.textContent = previewSpan.textContent;
                         }
                         // fire and forget
@@ -599,6 +613,7 @@
             showInlineDump(row, inline) {
                 const previewSpan = row.querySelector('.saci-inline-preview');
                 if (previewSpan) previewSpan.style.display = 'none';
+                inline.classList.remove('saci-hidden');
                 inline.style.display = 'block';
             },
 
@@ -640,10 +655,14 @@
                 try {
                     // Open immediately to show loader and avoid perceived lag
                     this.showInlineDump(row, inline);
-                    if (loading) loading.style.display = 'block';
-                    // Show preview right away if available
+                    if (loading) {
+                        loading.classList.remove('saci-hidden');
+                        loading.style.display = 'block';
+                    }
+                    // Show preview right away if available and content is empty
                     const previewSpan = row.querySelector('.saci-inline-preview');
-                    if (previewSpan && previewSpan.textContent && content && content.childElementCount === 0) {
+                    const isEmpty = content && content.childElementCount === 0 && !content.textContent.trim();
+                    if (previewSpan && previewSpan.textContent && isEmpty) {
                         content.textContent = previewSpan.textContent;
                     }
                     const html = await dumps.fetchHtml(requestId, dumpId);
@@ -654,7 +673,10 @@
                 } catch (e) {
                     if (content) content.textContent = 'Failed to load dump';
                 } finally {
-                    if (loading) loading.style.display = 'none';
+                    if (loading) {
+                        loading.classList.add('saci-hidden');
+                        loading.style.display = 'none';
+                    }
                 }
             },
 
@@ -666,7 +688,12 @@
                     const html = await dumps.fetchHtml(requestId, dumpId);
                     if (content) content.innerHTML = html;
                 } catch (e) { if (content) content.textContent = 'Failed to load dump'; }
-                finally { if (loading) loading.style.display = 'none'; }
+                finally {
+                    if (loading) {
+                        loading.classList.add('saci-hidden');
+                        loading.style.display = 'none';
+                    }
+                }
             },
 
             /** Loads dump HTML into a container without toggling rows. */
@@ -674,13 +701,19 @@
                 const loading = container.querySelector('.saci-dump-loading');
                 const content = container.querySelector('.saci-dump-content');
                 try {
-                    if (loading) loading.style.display = 'block';
+                    if (loading) {
+                        loading.classList.remove('saci-hidden');
+                        loading.style.display = 'block';
+                    }
                     const html = await dumps.fetchHtml(requestId, dumpId);
                     if (content) content.innerHTML = html;
                 } catch (e) {
                     if (content) content.textContent = 'Failed to load dump';
                 } finally {
-                    if (loading) loading.style.display = 'none';
+                    if (loading) {
+                        loading.classList.add('saci-hidden');
+                        loading.style.display = 'none';
+                    }
                 }
             },
 
@@ -937,12 +970,15 @@
                                 const requestId = inline.getAttribute('data-request-id');
                                 const preview = row.querySelector('.saci-inline-preview');
                                 if (preview && preview.style) preview.style.display = 'none';
+                                inline.classList.remove('saci-hidden');
                                 inline.style.display = 'block';
+                                // Check if content is truly empty (no HTML elements AND no text)
+                                const isEmpty = content && content.childElementCount === 0 && !content.textContent.trim();
                                 // Fallback: immediately render preview text so area is never empty
-                                if (content && content.childElementCount === 0 && preview && preview.textContent) {
+                                if (isEmpty && preview && preview.textContent) {
                                     content.textContent = preview.textContent;
                                 }
-                                if (dumpId && requestId && content && content.childElementCount === 0) {
+                                if (dumpId && requestId && isEmpty) {
                                     api.loadDumpInto(inline, requestId, dumpId);
                                 }
                                 return;
@@ -957,11 +993,12 @@
                                 const requestId = container.getAttribute('data-request-id');
                                 const content = container.querySelector('.saci-dump-content');
                                 const preview = row.querySelector('.saci-inline-preview');
+                                const isEmpty = content && content.childElementCount === 0 && !content.textContent.trim();
                                 // Fallback: preview text immediately while loading
-                                if (content && content.childElementCount === 0 && preview && preview.textContent) {
+                                if (isEmpty && preview && preview.textContent) {
                                     content.textContent = preview.textContent;
                                 }
-                                if (dumpId && requestId && content && content.childElementCount === 0) {
+                                if (dumpId && requestId && isEmpty) {
                                     api.loadDumpInto(container, requestId, dumpId);
                                 }
                             }
