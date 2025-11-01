@@ -23,7 +23,7 @@
 
     /**
      * AJAX helpers for lazy dumps.
-     * @type {{fetchHtml:(requestId:string,dumpId:string)=>Promise<string>}}
+     * @type {{fetchHtml:(requestId:string,dumpId:string)=>Promise<string>, fetchLateLogs:(requestId:string)=>Promise<object>}}
      */
     const dumps = {
         /** Fetch dump HTML for a given request/dump id pair. */
@@ -40,6 +40,21 @@
                 throw new Error('Failed to load dump');
             }
             return await response.text();
+        },
+        /** Fetch late logs that were collected after response was sent (terminable middleware, shutdown handlers, etc). */
+        async fetchLateLogs(requestId) {
+            const url = `/__saci/late-logs/${encodeURIComponent(requestId)}`;
+            const response = await fetch(url, {
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            });
+            if (!response.ok) {
+                throw new Error('Failed to load late logs');
+            }
+            return await response.json();
         }
     };
 
@@ -75,6 +90,8 @@
                 this.restoreCards();
                 this.restoreVarRows();
                 this.setupResize();
+                // Fetch late logs (from terminable middleware, shutdown handlers, etc)
+                this.fetchAndRenderLateLogs();
             },
 
             /** Reapplies persisted height to the bar. */
@@ -236,6 +253,109 @@
                 });
             },
 
+            /** Fetch and render late logs (from terminable middleware, shutdown, etc) */
+            async fetchAndRenderLateLogs() {
+                try {
+                    // Get request ID from the bar
+                    const requestId = this.$root.getAttribute('data-saci-request-id');
+                    if (!requestId) {
+                        console.debug('Saci: No request ID found, skipping late logs fetch');
+                        return;
+                    }
+
+                    // Single optimized fetch with shorter delay (250ms is enough for most cases)
+                    await new Promise(resolve => setTimeout(resolve, 250));
+
+                    // Fetch late logs
+                    const data = await dumps.fetchLateLogs(requestId);
+                    if (!data || !data.logs || data.logs.length === 0) {
+                        console.debug('Saci: No late logs found');
+                        return;
+                    }
+
+                    // Find the logs table tbody
+                    const logsTable = this.$root.querySelector('.saci-table-logs tbody');
+                    if (!logsTable) {
+                        console.warn('Saci: Logs table not found in DOM');
+                        return;
+                    }
+
+                    console.debug(`Saci: Rendering ${data.logs.length} late logs`);
+
+                    // Remove empty state message if present
+                    const emptyState = logsTable.querySelector('.saci-empty-state');
+                    if (emptyState) {
+                        emptyState.parentElement.remove();
+                    }
+
+                    // Batch DOM updates using DocumentFragment for better performance
+                    const fragment = document.createDocumentFragment();
+
+                    // Create all rows in memory first
+                    data.logs.forEach((log, idx) => {
+                        const rowKey = 'log-late-' + idx;
+                        const level = (log.level || 'info').toLowerCase();
+
+                        // Create the main row
+                        const tr = document.createElement('tr');
+                        tr.setAttribute('data-saci-var-key', rowKey);
+                        tr.classList.add('saci-late-log');
+
+                        // Level column (badge)
+                        const tdLevel = document.createElement('td');
+                        tdLevel.className = 'saci-var-name saci-col-level';
+                        const levelBadge = document.createElement('span');
+                        levelBadge.className = 'saci-badge saci-badge-level';
+                        levelBadge.textContent = level.toUpperCase();
+                        tdLevel.appendChild(levelBadge);
+
+                        // Time column
+                        const tdTime = document.createElement('td');
+                        tdTime.className = 'saci-var-type saci-col-time';
+                        tdTime.textContent = log.time || '';
+
+                        // Message column
+                        const tdMessage = document.createElement('td');
+                        tdMessage.className = 'saci-preview saci-col-message';
+                        const msgPreview = document.createElement('span');
+                        msgPreview.className = 'saci-inline-preview';
+                        msgPreview.textContent = log.message_preview || '';
+                        tdMessage.appendChild(msgPreview);
+
+                        // Context column
+                        const tdContext = document.createElement('td');
+                        tdContext.className = 'saci-preview saci-col-context';
+                        const ctxPreview = document.createElement('span');
+                        ctxPreview.className = 'saci-inline-preview';
+                        ctxPreview.textContent = log.context_preview || '';
+                        tdContext.appendChild(ctxPreview);
+
+                        tr.appendChild(tdLevel);
+                        tr.appendChild(tdTime);
+                        tr.appendChild(tdMessage);
+                        tr.appendChild(tdContext);
+
+                        fragment.appendChild(tr);
+                    });
+
+                    // Single DOM update (batched) - triggers only one reflow
+                    logsTable.appendChild(fragment);
+
+                    // Update badge count if logs tab badge exists
+                    const logsTab = this.$root.querySelector('[data-saci-tab="logs"]');
+                    if (logsTab) {
+                        const badge = logsTab.querySelector('.saci-badge');
+                        if (badge) {
+                            const currentCount = parseInt(badge.textContent || '0', 10);
+                            badge.textContent = String(currentCount + data.logs.length);
+                        }
+                    }
+                } catch (e) {
+                    // Silently fail if late logs can't be fetched (expected in many cases)
+                    console.debug('Saci: Could not fetch late logs', e);
+                }
+            },
+
             /** Shows the tooltip near a target. @param {Event} evt @param {string=} text */
             showTooltip(evt, text) {
                 try {
@@ -307,6 +427,9 @@
                         storage.set('saci.var.' + cardKey + '.' + varKey, isHidden ? '1' : '0');
                     }
                 } catch (e) {}
+                if (isHidden) {
+                    this.adjustHeightToFit(row);
+                }
             },
 
             /** Determine if a row click should be ignored (click inside dump content/toggles). */
@@ -314,9 +437,112 @@
                 try {
                     const target = evt && evt.target ? evt.target : null;
                     if (!target || !target.closest) return false;
-                    const ignoreSelector = '.saci-dump, .saci-dump-inline, .saci-dump-content, .sf-dump, [data-saci-stop-row-toggle]';
+                    // Do NOT ignore clicks on inline container itself; only ignore deep dumps and explicit stops
+                    const ignoreSelector = '.saci-dump, .saci-dump-content, .sf-dump, .saci-inline-preview, [data-saci-stop-row-toggle]';
                     return !!target.closest(ignoreSelector);
                 } catch (e) { return false; }
+            },
+
+            /** Open the specific inline dump tied to a preview span. */
+            openInlineFromPreview(previewSpan) {
+                try {
+                    const row = previewSpan.closest('tr[data-saci-var-key]');
+                    if (!row) return;
+                    const inlines = Array.from(row.querySelectorAll('.saci-preview .saci-dump-inline'));
+                    if (inlines.length === 0) return;
+                    const anyVisible = inlines.some(el => el.style.display !== 'none');
+                    if (anyVisible) {
+                        // Close all
+                        this.closeAllInlinesInRow(row);
+                    } else {
+                        // Open all
+                        this.openAllInlinesInRow(row);
+                    }
+                } catch (e) {}
+            },
+
+            /** Open both message and context inline dumps in the row. */
+            openAllInlinesInRow(row) {
+                const inlines = row.querySelectorAll('.saci-preview .saci-dump-inline');
+                inlines.forEach(inline => {
+                    const cell = inline.closest('.saci-preview');
+                    const preview = cell ? cell.querySelector('.saci-inline-preview') : null;
+                    if (preview) preview.style.display = 'none';
+                    inline.style.display = 'block';
+                    const dumpId = inline.getAttribute('data-dump-id');
+                    const requestId = inline.getAttribute('data-request-id');
+                    const content = inline.querySelector('.saci-dump-content');
+                    const loading = inline.querySelector('.saci-dump-loading');
+                    // Always ensure there is visible content: use preview text immediately
+                    if (content && content.childElementCount === 0 && preview && preview.textContent) {
+                        content.textContent = preview.textContent;
+                    }
+                    // If a dump is available, load it async and replace the preview text
+                    if (dumpId && requestId && content && content.childElementCount === 0) {
+                        if (loading) loading.style.display = 'block';
+                        this.loadDumpInto(inline, requestId, dumpId).finally(() => { if (loading) loading.style.display = 'none'; });
+                    }
+                });
+                try {
+                    const cardKey = this.getCardKey(row.closest('.saci-card'));
+                    const varKey = this.getVarKey(row);
+                    if (cardKey && varKey) this.setRowOpen(cardKey, varKey, true);
+                } catch (e) {}
+
+                // Expand File column to show full path (toggle preview/full)
+                const filePreview = row.querySelector('.saci-col-file .saci-file-preview');
+                const fileFull = row.querySelector('.saci-col-file .saci-file-full');
+                if (filePreview && fileFull) {
+                    filePreview.style.display = 'none';
+                    fileFull.style.display = 'inline';
+                }
+                // Ensure container can fit the newly opened content
+                this.adjustHeightToFit(row);
+            },
+
+            /** Close both message and context inline dumps in the row. */
+            closeAllInlinesInRow(row) {
+                const inlines = row.querySelectorAll('.saci-preview .saci-dump-inline');
+                inlines.forEach(inline => {
+                    const cell = inline.closest('.saci-preview');
+                    const preview = cell ? cell.querySelector('.saci-inline-preview') : null;
+                    inline.style.display = 'none';
+                    if (preview) preview.style.display = 'inline';
+                });
+                try {
+                    const cardKey = this.getCardKey(row.closest('.saci-card'));
+                    const varKey = this.getVarKey(row);
+                    if (cardKey && varKey) this.setRowOpen(cardKey, varKey, false);
+                } catch (e) {}
+
+                // Collapse File column back to filename
+                const filePreview = row.querySelector('.saci-col-file .saci-file-preview');
+                const fileFull = row.querySelector('.saci-col-file .saci-file-full');
+                if (filePreview && fileFull) {
+                    fileFull.style.display = 'none';
+                    filePreview.style.display = 'inline';
+                }
+            },
+
+            /** Collapse when clicking the inline container (not inside sf-dump).
+             *  Collapses both message and context inlines within the same row. */
+            collapseInlineFromContainer(inline) {
+                try {
+                    const row = inline.closest('tr[data-saci-var-key]');
+                    if (!row) return;
+                    // Collapse all inline dumps in the same row (message + context)
+                    row.querySelectorAll('.saci-preview').forEach(cell => {
+                        const cellInline = cell.querySelector('.saci-dump-inline');
+                        const cellPreview = cell.querySelector('.saci-inline-preview');
+                        if (cellInline) cellInline.style.display = 'none';
+                        if (cellPreview) cellPreview.style.display = 'inline';
+                    });
+                    try {
+                        const cardKey = this.getCardKey(row.closest('.saci-card'));
+                        const varKey = this.getVarKey(row);
+                        if (cardKey && varKey) this.setRowOpen(cardKey, varKey, false);
+                    } catch (e) {}
+                } catch (e) {}
             },
 
             /** Handles click on a variable row with lazy dump loading. @param {HTMLTableRowElement} row @param {MouseEvent=} evt */
@@ -326,17 +552,20 @@
                 }
                 const inline = row.querySelector('.saci-dump-inline');
                 if (inline) {
-                    const dumpId = inline.getAttribute('data-dump-id');
-                    const requestId = inline.getAttribute('data-request-id');
-                    const content = inline.querySelector('.saci-dump-content');
-                    const loading = inline.querySelector('.saci-dump-loading');
-                    if (dumpId && requestId && content && content.childElementCount === 0) {
-                        await this.openInlineAndLoad(row, inline, requestId, dumpId, loading, content);
-                        return;
-                    } else {
-                        this.toggleInlineDump(row, inline);
+                    const anyContentEmpty = Array.from(row.querySelectorAll('.saci-preview .saci-dump-inline')).some(el => {
+                        const c = el.querySelector('.saci-dump-content');
+                        return c && c.childElementCount === 0;
+                    });
+                    const anyVisible = Array.from(row.querySelectorAll('.saci-preview .saci-dump-inline')).some(el => el.style.display !== 'none');
+                    if (!anyVisible) {
+                        // Open both; load empties
+                        this.openAllInlinesInRow(row);
+                        this.adjustHeightToFit(row);
                         return;
                     }
+                    // Toggle both
+                    this.closeAllInlinesInRow(row);
+                    return;
                 }
 
                 const valueRow = row.nextElementSibling; if (!valueRow) return;
@@ -358,10 +587,12 @@
                         }
                         // fire and forget
                         this.loadDumpFromIds(container, requestId, dumpId).catch(() => {});
+                        this.adjustHeightToFit(row);
                         return;
                     }
                 }
                 this.toggleVarRow(row);
+                this.adjustHeightToFit(row);
             },
 
             /** Helper: show inline dump area and hide preview. */
@@ -371,16 +602,36 @@
                 inline.style.display = 'block';
             },
 
-            /** Helper: toggle inline dump visibility and persist state. */
-            toggleInlineDump(row, inline) {
-                const previewSpan = row.querySelector('.saci-inline-preview');
-                const isVisible = inline.style.display !== 'none';
-                inline.style.display = isVisible ? 'none' : 'block';
-                if (previewSpan) previewSpan.style.display = isVisible ? 'inline' : 'none';
+            /** Helper: toggle both inline dumps in the row. */
+            toggleInlineDump(row, _inlineIgnored) {
+                const anyVisible = Array.from(row.querySelectorAll('.saci-preview .saci-dump-inline')).some(el => el.style.display !== 'none');
+                if (anyVisible) this.closeAllInlinesInRow(row); else this.openAllInlinesInRow(row);
+            },
+
+            /** Ensure the bar height is sufficient to display newly expanded content and keep the row visible. */
+            adjustHeightToFit(row) {
                 try {
-                    const cardKey = this.getCardKey(row.closest('.saci-card'));
-                    const varKey = this.getVarKey(row);
-                    if (cardKey && varKey) this.setRowOpen(cardKey, varKey, !isVisible);
+                    const rootEl = row && row.closest ? row.closest('#saci') : null;
+                    if (!rootEl || rootEl.classList.contains('saci-collapsed')) return;
+                    const contentEl = rootEl.querySelector('#saci-content');
+                    if (!contentEl) return;
+                    const headerH = 36;
+                    const MAX = Math.round((window.innerHeight || document.documentElement.clientHeight) * 0.9);
+                    const desired = Math.min(MAX, (contentEl.scrollHeight || 0) + headerH);
+                    const current = rootEl.getBoundingClientRect().height;
+                    if (desired > current + 2) {
+                        rootEl.style.maxHeight = desired + 'px';
+                        contentEl.style.maxHeight = 'calc(' + desired + 'px - ' + headerH + 'px)';
+                        try { storage.set('saci.maxHeightPx', String(desired)); } catch (e) {}
+                    }
+                    // Nudge scroll to ensure row is fully visible
+                    const r = row.getBoundingClientRect();
+                    const c = contentEl.getBoundingClientRect();
+                    if (r.bottom > c.bottom) {
+                        contentEl.scrollTop += (r.bottom - c.bottom);
+                    } else if (r.top < c.top) {
+                        contentEl.scrollTop -= (c.top - r.top);
+                    }
                 } catch (e) {}
             },
 
@@ -471,8 +722,7 @@
             // Shared click-suppression flag to avoid collapsing after drag
             let suppressClickOnce = false;
             // Ensure content starts hidden until expanded by code
-            // Any x-cloak remnants are removed for safety
-            root.querySelectorAll('[x-cloak]').forEach(el => { el.removeAttribute('x-cloak'); });
+            // Alpine.js no longer used
 
             // Apply persisted height if any
             try {
@@ -500,9 +750,7 @@
                     : name === 'route'
                       ? root.querySelector('#saci-tabpanel-route')
                       : root.querySelector('#saci-tabpanel-logs');
-                if (current) {
-                    current.querySelectorAll('[x-cloak]').forEach(el => { el.removeAttribute('x-cloak'); });
-                }
+                // Alpine.js no longer used
             };
             const togglePanels = () => {
                 const panels = {
@@ -554,9 +802,7 @@
                         : state.tab === 'route'
                           ? root.querySelector('#saci-tabpanel-route')
                           : root.querySelector('#saci-tabpanel-logs');
-                    if (current) {
-                        current.querySelectorAll('[x-cloak]').forEach(el => { el.removeAttribute('x-cloak'); });
-                    }
+                    // Alpine.js no longer used
                 }
             };
             if (header) {
@@ -639,6 +885,36 @@
                             api.onVarRowClick(row, ev);
                         }
                     });
+                    // Bind specific preview spans to open their corresponding inline dumps
+                    row.querySelectorAll('.saci-inline-preview').forEach(preview => {
+                        if (preview.__saci_bound) return;
+                        preview.__saci_bound = true;
+                        preview.addEventListener('click', (e) => { e.stopPropagation(); api.openInlineFromPreview(preview); });
+                        preview.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); api.openInlineFromPreview(preview); } });
+                        preview.setAttribute('tabindex', '0');
+                        preview.setAttribute('role', 'button');
+                        preview.setAttribute('data-saci-stop-row-toggle', '1');
+                    });
+                    // Bind inline container to collapse when clicking outside the dump content
+                    row.querySelectorAll('.saci-dump-inline').forEach(inline => {
+                        if (inline.__saci_bound) return;
+                        inline.__saci_bound = true;
+                        inline.setAttribute('data-saci-stop-row-toggle', '1');
+                        inline.addEventListener('click', (e) => {
+                            const inDump = e.target && e.target.closest ? e.target.closest('.sf-dump') : null;
+                            if (inDump) return; // allow interacting with dump controls
+                            e.stopPropagation();
+                            api.collapseInlineFromContainer(inline);
+                        });
+                        inline.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                const inDump = e.target && e.target.closest ? e.target.closest('.sf-dump') : null;
+                                if (inDump) return;
+                                e.preventDefault(); e.stopPropagation();
+                                api.collapseInlineFromContainer(inline);
+                            }
+                        });
+                    });
                 });
             };
 
@@ -662,6 +938,10 @@
                                 const preview = row.querySelector('.saci-inline-preview');
                                 if (preview && preview.style) preview.style.display = 'none';
                                 inline.style.display = 'block';
+                                // Fallback: immediately render preview text so area is never empty
+                                if (content && content.childElementCount === 0 && preview && preview.textContent) {
+                                    content.textContent = preview.textContent;
+                                }
                                 if (dumpId && requestId && content && content.childElementCount === 0) {
                                     api.loadDumpInto(inline, requestId, dumpId);
                                 }
@@ -676,6 +956,11 @@
                                 const dumpId = container.getAttribute('data-dump-id');
                                 const requestId = container.getAttribute('data-request-id');
                                 const content = container.querySelector('.saci-dump-content');
+                                const preview = row.querySelector('.saci-inline-preview');
+                                // Fallback: preview text immediately while loading
+                                if (content && content.childElementCount === 0 && preview && preview.textContent) {
+                                    content.textContent = preview.textContent;
+                                }
                                 if (dumpId && requestId && content && content.childElementCount === 0) {
                                     api.loadDumpInto(container, requestId, dumpId);
                                 }
@@ -702,7 +987,7 @@
                 : state.tab === 'route'
                   ? root.querySelector('#saci-tabpanel-route')
                   : root.querySelector('#saci-tabpanel-logs');
-            if (initialPanel) initialPanel.querySelectorAll('[x-cloak]').forEach(el => { el.removeAttribute('x-cloak'); });
+            // Alpine.js no longer used
 
             // Header summaries (views/request) in vanilla mode
             const viewsDisplay = (root.getAttribute('data-views-display') || '');
@@ -876,6 +1161,17 @@
             root.addEventListener('focusout', (e) => {
                 const from = e.target && e.target.closest ? e.target.closest(tooltipSelector) : null;
                 if (from) hideTip();
+            });
+            // Safety: delegated listeners to ensure row toggling works even if per-row bindings fail
+            root.addEventListener('click', (e) => {
+                const pv = e.target && e.target.closest ? e.target.closest('.saci-inline-preview') : null;
+                if (pv && root.contains(pv)) { e.stopPropagation(); api.openInlineFromPreview(pv); return; }
+                const tr = e.target && e.target.closest ? e.target.closest('tr[data-saci-var-key]') : null;
+                if (tr && root.contains(tr)) {
+                    if (api.shouldIgnoreRowClick(e)) return;
+                    e.stopPropagation();
+                    api.onVarRowClick(tr, e);
+                }
             });
         } catch (e) {}
     };

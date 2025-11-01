@@ -34,10 +34,7 @@
         ] as $label => $info)
             <tr
                 data-saci-var-key="request.{{ $label }}"
-                @click.stop="onVarRowClick($el)"
                 tabindex="0"
-                @keydown.enter.prevent="$el.click()"
-                @keydown.space.prevent="$el.click()"
             >
                 <td class="saci-col-name">{{ $label }}</td>
                 <td colspan="3" class="saci-preview">

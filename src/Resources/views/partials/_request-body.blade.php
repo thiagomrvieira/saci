@@ -12,7 +12,7 @@
     </tr>
     </thead>
     <tbody>
-    <tr data-saci-var-key="request.body" @click.stop="onVarRowClick($el)" tabindex="0" @keydown.enter.prevent="$el.click()" @keydown.space.prevent="$el.click()">
+    <tr data-saci-var-key="request.body" tabindex="0">
         <td class="saci-var-name">raw</td>
         <td class="saci-preview">{{ $rawPreview !== '' ? $rawPreview : '[empty]' }}</td>
     </tr>

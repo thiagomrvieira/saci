@@ -3,7 +3,6 @@
 namespace ThiagoVieira\Saci;
 
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
-use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Log;
 use ThiagoVieira\Saci\SaciInfo;
 

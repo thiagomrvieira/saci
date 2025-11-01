@@ -5,6 +5,10 @@ namespace ThiagoVieira\Saci;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use ThiagoVieira\Saci\Support\DumpManager;
+use ThiagoVieira\Saci\Support\LogCollector;
+use ThiagoVieira\Saci\Support\LogProcessor;
+use ThiagoVieira\Saci\Support\LateLogsPersistence;
+use ThiagoVieira\Saci\Support\FilePathResolver;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
@@ -31,13 +35,20 @@ class RequestResources
 
     protected ?float $startTime = null;
 
+    /** @var array<int,array<string,mixed>> */
+    protected array $logsProcessed = [];
+
     public function __construct(
         protected DumpManager $dumpManager,
         protected TemplateTracker $tracker,
+        protected LogCollector $logCollector,
+        protected LogProcessor $logProcessor,
+        protected LateLogsPersistence $lateLogsPersistence,
+        protected FilePathResolver $pathResolver,
     ) {}
 
     /**
-     * Prepare for a new request and register container listener (once).
+     * Prepare for a new request.
      */
     public function start(): void
     {
@@ -46,6 +57,10 @@ class RequestResources
         $this->responseMeta = [];
         $this->authMeta = [];
         $this->startTime = microtime(true);
+        $this->logsProcessed = [];
+
+        // Start log collection
+        $this->logCollector->start();
     }
 
     /**
@@ -261,6 +276,57 @@ class RequestResources
             'headers' => $response->headers->all(),
             'duration_ms' => $durationMs,
         ];
+
+        // Process logs collected so far (before response is sent)
+        $this->processInitialLogs();
+    }
+
+    /**
+     * Process logs collected before response was sent.
+     */
+    protected function processInitialLogs(): void
+    {
+        $requestId = $this->getRequestId();
+        $rawLogs = $this->logCollector->getRawLogs();
+
+        $this->logsProcessed = $this->logProcessor->process($rawLogs, $requestId);
+    }
+
+    /**
+     * Process and persist late logs (after response sent).
+     * Called from middleware terminate().
+     */
+    public function processLateLogsIfNeeded(): void
+    {
+        $processedCount = count($this->logsProcessed);
+        $rawLogs = $this->logCollector->getRawLogs();
+
+        // Check if new logs were collected
+        if (count($rawLogs) <= $processedCount) {
+            return;
+        }
+
+        // Process only the new logs
+        $requestId = $this->getRequestId();
+        $newLogs = $this->logProcessor->process($rawLogs, $requestId, $processedCount);
+
+        // Add to processed logs
+        $this->logsProcessed = array_merge($this->logsProcessed, $newLogs);
+
+        // Persist late logs for AJAX retrieval
+        if ($requestId && !empty($newLogs)) {
+            $this->lateLogsPersistence->persist($requestId, $newLogs);
+        }
+    }
+
+    /**
+     * Get current request ID.
+     */
+    protected function getRequestId(): ?string
+    {
+        return method_exists($this->tracker, 'getRequestId')
+            ? $this->tracker->getRequestId()
+            : null;
     }
 
     /**
@@ -293,20 +359,17 @@ class RequestResources
             'request' => $this->requestMeta,
             'response' => $this->responseMeta,
             'auth' => $this->authMeta,
+            'logs' => $this->logsProcessed,
         ];
     }
 
     /**
-     * Convert an absolute path into a project-relative path prefixed with '/'.
+     * Convert an absolute path into a project-relative path.
+     * Delegates to FilePathResolver for consistency.
      */
     protected function toRelativePath(string $absolutePath): string
     {
-        $base = rtrim((string) base_path(), '/');
-        $normalized = str_replace('\\', '/', $absolutePath);
-        $rel = str_starts_with($normalized, $base . '/')
-            ? substr($normalized, strlen($base))
-            : $normalized;
-        return $rel === '' ? $normalized : $rel;
+        return $this->pathResolver->toRelative($absolutePath);
     }
 }
 

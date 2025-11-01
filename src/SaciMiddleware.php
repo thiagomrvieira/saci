@@ -71,6 +71,26 @@ class SaciMiddleware
     }
 
     /**
+     * Perform any final actions for the request lifecycle.
+     * This runs AFTER the response has been sent to the browser,
+     * allowing us to capture late logs (terminable middleware, jobs, etc.)
+     */
+    public function terminate(Request $request, SymfonyResponse $response): void
+    {
+        if (!$this->validator->shouldTrace($request)) {
+            return;
+        }
+
+        if (method_exists($this->validator, 'shouldSkipResponse') && $this->validator->shouldSkipResponse($response)) {
+            return;
+        }
+
+        // Process any logs that were emitted after the response was sent
+        // (e.g., from terminable middleware, shutdown handlers, queued jobs)
+        $this->resources->processLateLogsIfNeeded();
+    }
+
+    /**
      * Register the view tracker.
      */
     protected function registerViewTracker(): void

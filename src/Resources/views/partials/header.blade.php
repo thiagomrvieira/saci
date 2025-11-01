@@ -37,6 +37,17 @@
             >
                 Route
             </button>
+            <button
+                class="saci-tab"
+                role="tab"
+                aria-selected="false"
+                aria-controls="saci-tabpanel-logs"
+                id="saci-tab-logs"
+                type="button"
+                data-saci-tab="logs"
+            >
+                Logs
+            </button>
         </div>
     </div>
     <div id="saci-controls" class="saci-controls">
@@ -68,6 +79,12 @@
             <template>
                 <div class="saci-summary" style="margin:0;">
                     <div class="saci-summary-left">{{ $method }} {{ $uri }}</div>
+                </div>
+            </template>
+            <template>
+                <div class="saci-summary" style="margin:0;">
+                    @php $logsCount = count($logs ?? []); @endphp
+                    <div class="saci-summary-left">{{ $logsCount }} {{ Str::plural('log', $logsCount) }}</div>
                 </div>
             </template>
         </div>
@@ -102,6 +119,12 @@
             <template>
                 <span>
                     {{ $method }} {{ $uri }}
+                </span>
+            </template>
+            <template>
+                <span>
+                    @php $logsCount = count($logs ?? []); @endphp
+                    {{ $logsCount }} {{ Str::plural('log', $logsCount) }}
                 </span>
             </template>
         </span>

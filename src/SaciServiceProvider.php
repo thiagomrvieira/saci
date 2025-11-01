@@ -7,6 +7,10 @@ use Illuminate\Contracts\Http\Kernel;
 use ThiagoVieira\Saci\SaciConfig;
 use ThiagoVieira\Saci\Support\DumpManager;
 use ThiagoVieira\Saci\Support\DumpStorage;
+use ThiagoVieira\Saci\Support\LogCollector;
+use ThiagoVieira\Saci\Support\LogProcessor;
+use ThiagoVieira\Saci\Support\LateLogsPersistence;
+use ThiagoVieira\Saci\Support\FilePathResolver;
 use ThiagoVieira\Saci\Http\Controllers\DumpController;
 use ThiagoVieira\Saci\Http\Controllers\AssetsController;
 
@@ -56,16 +60,26 @@ class SaciServiceProvider extends ServiceProvider
      */
     protected function registerServices(): void
     {
+        // Core storage and dump management
         $this->app->singleton(DumpStorage::class, function($app) {
             $caps = config('saci.caps', []);
             $perRequestBytes = (int) ($caps['per_request_bytes'] ?? 1048576);
             $ttl = (int) ($caps['ttl_seconds'] ?? 60);
             return new DumpStorage('local', $perRequestBytes, $ttl);
         });
+
         $this->app->singleton(DumpManager::class, function($app) {
             $limits = config('saci.dump', []);
             return new DumpManager($app->make(DumpStorage::class), $limits);
         });
+
+        // Log collection and processing
+        $this->app->singleton(FilePathResolver::class);
+        $this->app->singleton(LogCollector::class);
+        $this->app->singleton(LogProcessor::class);
+        $this->app->singleton(LateLogsPersistence::class);
+
+        // Core components
         $this->app->singleton(TemplateTracker::class);
         $this->app->singleton(DebugBarInjector::class);
         $this->app->singleton(RequestValidator::class);
@@ -76,6 +90,7 @@ class SaciServiceProvider extends ServiceProvider
     {
         $router = $this->app['router'];
         $router->get('/__saci/dump/{requestId}/{dumpId}', [DumpController::class, 'show'])->middleware('web');
+        $router->get('/__saci/late-logs/{requestId}', [DumpController::class, 'lateLogs'])->middleware('web');
 
         // Always register asset routes; controller guards serving based on config and client
         $router->group(['prefix' => '/__saci/assets', 'middleware' => ['web']], function($router) {

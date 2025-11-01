@@ -12,7 +12,7 @@
     </tr>
     </thead>
     <tbody>
-    <tr data-saci-var-key="request.headers" @click.stop="onVarRowClick($el)" tabindex="0" @keydown.enter.prevent="$el.click()" @keydown.space.prevent="$el.click()">
+    <tr data-saci-var-key="request.headers" tabindex="0">
         <td class="saci-var-name">headers</td>
         <td class="saci-preview">{{ $headersPreview }}</td>
     </tr>

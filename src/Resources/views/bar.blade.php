@@ -44,6 +44,7 @@
     id="saci"
     class="saci-{{ config('saci.ui.position', 'bottom') === 'top' ? 'top' : 'bottom' }} saci-theme-{{ $theme }} saci-collapsed"
     style="max-height: {{ config('saci.ui.max_height', '30vh') }}; --saci-alpha: {{ \ThiagoVieira\Saci\SaciConfig::getTransparency() }};"
+    data-saci-request-id="{{ $requestId ?? '' }}"
     data-views-display="{{ $viewsMeta['display'] ?? '' }}"
     data-views-class="{{ $viewsMeta['class'] ?? '' }}"
     data-views-tooltip="{{ $viewsMeta['tooltip'] ?? '' }}"
@@ -63,6 +64,7 @@
         'method' => $method,
         'uri' => $uri,
         'requestMeta' => $requestMeta,
+        'logs' => ($resources['logs'] ?? []),
     ])
 
     <div
@@ -87,6 +89,9 @@
                 'open' => true,
                 'content' => view('saci::partials._request-route', ['route' => $route, 'requestId' => ($requestId ?? null)])->render(),
             ])
+        </div>
+        <div id="saci-tabpanel-logs" class="saci-panel" role="tabpanel" aria-labelledby="saci-tab-logs" style="display: none;">
+            @include('saci::partials.logs', ['logs' => ($resources['logs'] ?? []), 'requestId' => ($requestId ?? null)])
         </div>
     </div>
 </div>

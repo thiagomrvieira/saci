@@ -84,6 +84,7 @@
     background: #2d3748;
     padding: 8px 12px;
     cursor: pointer;
+    border-top: 1px solid rgba(239,68,68,0.6);
 }
 
 #saci-header .saci-title { font-weight: bold; color: #ef4444; }
@@ -121,7 +122,7 @@
 #saci:not(.saci-collapsed) #saci-controls-version { display: none; }
 
 /* Alpine cloak */
-[x-cloak] { display: none !important; }
+/* Removed Alpine cloak rule: no Alpine usage */
 
 .saci-card {
     padding: 10px;
@@ -143,6 +144,15 @@
 .saci-card .saci-path { color: #68d391; font-family: 'Fira Code', monospace; }
 .saci-badge { color: #f6ad55; font-size: 0.8em; background: #2d3748; padding: 2px 6px; border-radius: 4px; }
 .saci-badge-danger { color: inherit; }
+.saci-badge.saci-log--emergency,
+.saci-badge.saci-log--alert,
+.saci-badge.saci-log--critical,
+.saci-badge.saci-log--error,
+.saci-badge.saci-log--warning,
+.saci-badge.saci-log--notice,
+.saci-badge.saci-log--info,
+.saci-badge.saci-log--debug { display: inline-flex; align-items: center; gap: 6px; }
+
 .saci-card-content { margin-top: 8px; font-size: 0.85em; color: #a0aec0; }
 .saci-meta { display: flex; gap: 10px; align-items: center; }
 
@@ -152,6 +162,10 @@
 .saci-table td { padding: 6px 4px; }
 .saci-col-name { width: 28%; }
 .saci-col-type { width: 20%; }
+.saci-col-level { width: 100px; }
+.saci-col-time { width: 110px; }
+.saci-col-message { width: 50%; }
+.saci-col-context { width: 50%; }
 .saci-table .saci-actions { width: 110px; white-space: nowrap; text-align: right; position: sticky; right: 0; box-shadow: -1px 0 0 rgba(148,163,184,0.08); }
 .saci-table tbody tr { border-bottom: 1px solid rgba(148,163,184,0.12); }
 .saci-preview { padding-right: 110px; color: #a0aec0; word-break: break-word; white-space: normal; }
@@ -178,6 +192,15 @@
 }
 
 .saci-btn-ghost { display: none; }
+
+/* Utility classes */
+.saci-hidden { display: none !important; }
+.saci-empty-state {
+    text-align: center;
+    padding: 20px;
+    color: var(--saci-c-muted);
+    font-style: italic;
+}
 
 /* Header spacing and controls */
 #saci-header .saci-sep { margin-left: 10px; }
@@ -213,6 +236,8 @@
 }
 .saci-badge-vars { min-width: 84px; }
 .saci-badge-ms { min-width: 72px; }
+.saci-badge-level { width: 73px; min-width: 73px; text-align: center; display: inline-flex; justify-content: center; align-items: center; }
+th.saci-col-level { text-align: left; }
 
 /* Soft transitions for card content */
 .saci-card-content {
@@ -222,8 +247,9 @@
     transition: max-height 240ms ease, opacity 180ms ease;
 }
 .saci-card.is-open .saci-card-content {
-    max-height: 1000px;
+    max-height: 80vh;
     opacity: 1;
+    overflow-y: auto;
 }
 
 /* Request time severity colors */

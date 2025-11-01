@@ -12,10 +12,7 @@
     @foreach($data as $key => $info)
         <tr
             data-saci-var-key="{{ $key }}"
-            @click.stop="onVarRowClick($el)"
             tabindex="0"
-            @keydown.enter.prevent="$el.click()"
-            @keydown.space.prevent="$el.click()"
         >
             <td class="saci-var-name">{{ $key }}</td>
             <td class="saci-var-type">{{ $info['type'] ?? gettype($info) }}</td>
