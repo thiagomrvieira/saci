@@ -12,7 +12,7 @@
     opacity: var(--saci-alpha, 1);
     box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
     overflow: hidden;
-    transition: max-height 420ms cubic-bezier(0.25, 0.1, 0.25, 1);
+    transition: max-height 120ms ease-out;
     /* Theme tokens */
     --saci-c-text: #e2e8f0;
     --saci-c-muted: #a0aec0;
@@ -96,7 +96,7 @@
 #saci-content {
     padding: 12px;
     overflow-y: auto;
-    transition: max-height 420ms cubic-bezier(0.25, 0.1, 0.25, 1);
+    transition: max-height 120ms ease-out;
 }
 #saci-content ul { margin: 0; padding: 0; list-style: none; }
 
@@ -240,7 +240,7 @@
 #saci-header .saci-sep { margin-left: 10px; }
 #saci-header .saci-duration { color: #fc8181; margin-left: 10px; }
 
-/* Tabs - professional look */
+/* Tabs - modern, elegant look */
 .saci-tabs { display: inline-flex; gap: var(--saci-space-8); margin-left: var(--saci-space-10); }
 .saci-tab {
     appearance: none;
@@ -251,15 +251,216 @@
     border-radius: var(--saci-radius);
     cursor: pointer;
     font-size: 0.82em;
-    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+    position: relative;
+    overflow: hidden;
+    transition:
+        background-color 200ms cubic-bezier(0.4, 0.0, 0.2, 1),
+        border-color 200ms cubic-bezier(0.4, 0.0, 0.2, 1),
+        color 200ms cubic-bezier(0.4, 0.0, 0.2, 1),
+        transform 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
 }
-.saci-tab:hover { background: rgba(30,41,59,0.7); border-color: rgba(148,163,184,0.35); }
-.saci-tab:focus { outline: 2px solid rgba(239,68,68,0.5); outline-offset: 2px; }
-.saci-tab--active { color: var(--saci-c-accent); border-color: rgba(239,68,68,0.6); background: rgba(17,24,39,0.8); }
+.saci-tab:hover {
+    background: rgba(30,41,59,0.7);
+    border-color: rgba(148,163,184,0.35);
+    transform: translateY(-1px);
+}
+.saci-tab:active {
+    transform: translateY(0);
+}
+.saci-tab:focus {
+    outline: 2px solid rgba(239,68,68,0.5);
+    outline-offset: 2px;
+}
+.saci-tab--active {
+    color: var(--saci-c-accent);
+    border-color: rgba(239,68,68,0.6);
+    background: rgba(17,24,39,0.8);
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(239,68,68,0.15);
+}
+.saci-tab--active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--saci-c-accent);
+    animation: slideIn 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+@keyframes slideIn {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
 #saci-controls-buttons { display: flex; gap: 8px; align-items: center; }
 
 /* Show resize cursor only when expanded */
 #saci:not(.saci-collapsed) #saci-header { cursor: ns-resize; }
+
+/* Disable transitions during drag for instant response */
+#saci.saci-no-transition,
+#saci.saci-no-transition #saci-content { transition: none !important; }
+
+/* Tab panels - smooth, modern transitions when switching tabs */
+.saci-panel {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0px);
+    transition:
+        opacity 280ms cubic-bezier(0.4, 0.0, 0.2, 1),
+        transform 320ms cubic-bezier(0.4, 0.0, 0.2, 1),
+        filter 240ms cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Fade out state - elegant exit */
+.saci-panel.saci-panel-exit {
+    opacity: 0;
+    transform: translateX(-12px) scale(0.98);
+    filter: blur(2px);
+    pointer-events: none;
+}
+
+/* Fade in state - smooth entrance */
+.saci-panel.saci-panel-enter {
+    opacity: 0;
+    transform: translateX(12px) scale(0.98);
+    filter: blur(2px);
+}
+
+/* Active state - crisp and clear */
+.saci-panel.saci-panel-active {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0px);
+    pointer-events: auto;
+}
+
+/* Stagger animation for content inside panels */
+.saci-panel.saci-panel-active .saci-card,
+.saci-panel.saci-panel-active .saci-table {
+    animation: fadeInUp 400ms cubic-bezier(0.4, 0.0, 0.2, 1) backwards;
+}
+
+.saci-panel.saci-panel-active .saci-card:nth-child(1),
+.saci-panel.saci-panel-active .saci-table:nth-child(1) {
+    animation-delay: 40ms;
+}
+
+.saci-panel.saci-panel-active .saci-card:nth-child(2),
+.saci-panel.saci-panel-active .saci-table:nth-child(2) {
+    animation-delay: 80ms;
+}
+
+.saci-panel.saci-panel-active .saci-card:nth-child(3) {
+    animation-delay: 120ms;
+}
+
+.saci-panel.saci-panel-active .saci-card:nth-child(4) {
+    animation-delay: 160ms;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .saci-panel {
+        transition: opacity 150ms ease;
+        transform: none !important;
+        filter: none !important;
+    }
+    .saci-panel.saci-panel-exit,
+    .saci-panel.saci-panel-enter {
+        transform: none;
+        filter: none;
+    }
+    .saci-panel.saci-panel-active .saci-card,
+    .saci-panel.saci-panel-active .saci-table {
+        animation: none;
+    }
+    .saci-tab {
+        transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+        transform: none !important;
+    }
+    .saci-tab--active::after {
+        animation: none;
+    }
+}
+
+/* Virtual scrolling container for logs table */
+.saci-table-logs-virtual-container {
+    position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 60vh;
+    /* Better scroll performance */
+    will-change: scroll-position;
+    /* Custom scrollbar for better UX */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148,163,184,0.3) transparent;
+}
+
+.saci-table-logs-virtual-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.saci-table-logs-virtual-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.saci-table-logs-virtual-container::-webkit-scrollbar-thumb {
+    background: rgba(148,163,184,0.3);
+    border-radius: 4px;
+}
+
+.saci-table-logs-virtual-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(148,163,184,0.5);
+}
+
+.saci-table-logs-virtual-spacer {
+    height: 1px;
+    pointer-events: none;
+    background: transparent;
+}
+
+.saci-table-logs.saci-virtual tbody {
+    position: relative;
+}
+
+/* Indicate virtual scrolling is active */
+.saci-table-logs.saci-virtual::after {
+    content: '⚡ Virtual scrolling enabled';
+    position: absolute;
+    top: 8px;
+    right: 16px;
+    font-size: 0.75em;
+    color: rgba(148,163,184,0.6);
+    pointer-events: none;
+    padding: 2px 8px;
+    background: rgba(15,23,42,0.8);
+    border-radius: 4px;
+    opacity: 0;
+    animation: fadeInOut 3s ease-in-out;
+}
+
+@keyframes fadeInOut {
+    0%, 100% { opacity: 0; }
+    20%, 80% { opacity: 1; }
+}
 
 /* Fixed-width badges for alignment */
 .saci-badge-vars, .saci-badge-ms {

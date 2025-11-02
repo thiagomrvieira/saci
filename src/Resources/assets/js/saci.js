@@ -62,6 +62,167 @@
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
     /**
+     * Virtual Scrolling Module
+     * Handles efficient rendering of large log lists (>50 items)
+     */
+    const virtualScroll = {
+        // Configuration
+        THRESHOLD: 50,
+        BUFFER_SIZE: 10,
+        ESTIMATED_ROW_HEIGHT: 40,
+
+        // State
+        enabled: false,
+        container: null,
+        tbody: null,
+        allRows: [],
+        visibleRows: [],
+        scrollTop: 0,
+        containerHeight: 0,
+
+        /** Initialize virtual scrolling if needed */
+        init(tbody) {
+            this.tbody = tbody;
+            if (!tbody) return false;
+
+            this.allRows = Array.from(tbody.querySelectorAll('tr[data-saci-var-key]'));
+
+            // Only enable if we have more than threshold
+            if (this.allRows.length <= this.THRESHOLD) {
+                this.enabled = false;
+                return false;
+            }
+
+            // Calculate average row height from first few rows
+            this.calculateRowHeight();
+
+            this.enabled = true;
+            this.setupContainer();
+            this.render();
+            return true;
+        },
+
+        /** Calculate average row height from sample */
+        calculateRowHeight() {
+            const sampleSize = Math.min(10, this.allRows.length);
+            let totalHeight = 0;
+
+            for (let i = 0; i < sampleSize; i++) {
+                const row = this.allRows[i];
+                if (row) {
+                    totalHeight += row.offsetHeight || this.ESTIMATED_ROW_HEIGHT;
+                }
+            }
+
+            this.ESTIMATED_ROW_HEIGHT = Math.max(30, Math.ceil(totalHeight / sampleSize));
+        },
+
+        /** Setup virtual scroll container */
+        setupContainer() {
+            const table = this.tbody.closest('table');
+            if (!table || table.parentElement.classList.contains('saci-table-logs-virtual-container')) return;
+
+            // Wrap table in virtual container
+            const container = document.createElement('div');
+            container.className = 'saci-table-logs-virtual-container';
+            table.parentElement.insertBefore(container, table);
+            container.appendChild(table);
+
+            this.container = container;
+            table.classList.add('saci-virtual');
+
+            // Add scroll listener with throttle
+            let rafId = null;
+            container.addEventListener('scroll', () => {
+                if (rafId) return;
+                rafId = requestAnimationFrame(() => {
+                    this.handleScroll();
+                    rafId = null;
+                });
+            });
+
+            this.containerHeight = container.clientHeight;
+        },
+
+        /** Handle scroll event */
+        handleScroll() {
+            if (!this.container) return;
+            this.scrollTop = this.container.scrollTop;
+            this.render();
+        },
+
+        /** Calculate visible range */
+        getVisibleRange() {
+            const start = Math.floor(this.scrollTop / this.ESTIMATED_ROW_HEIGHT);
+            const visibleCount = Math.ceil(this.containerHeight / this.ESTIMATED_ROW_HEIGHT);
+
+            // Add buffer
+            const startIndex = Math.max(0, start - this.BUFFER_SIZE);
+            const endIndex = Math.min(this.visibleRows.length, start + visibleCount + this.BUFFER_SIZE);
+
+            return { startIndex, endIndex };
+        },
+
+        /** Render visible rows */
+        render() {
+            if (!this.enabled || !this.tbody) return;
+
+            const { startIndex, endIndex } = this.getVisibleRange();
+
+            // Clear tbody
+            this.tbody.innerHTML = '';
+
+            // Add top spacer
+            if (startIndex > 0) {
+                const spacer = document.createElement('tr');
+                spacer.className = 'saci-table-logs-virtual-spacer';
+                spacer.style.height = (startIndex * this.ESTIMATED_ROW_HEIGHT) + 'px';
+                this.tbody.appendChild(spacer);
+            }
+
+            // Render visible rows
+            for (let i = startIndex; i < endIndex; i++) {
+                const row = this.visibleRows[i];
+                if (row) this.tbody.appendChild(row);
+            }
+
+            // Add bottom spacer
+            const remaining = this.visibleRows.length - endIndex;
+            if (remaining > 0) {
+                const spacer = document.createElement('tr');
+                spacer.className = 'saci-table-logs-virtual-spacer';
+                spacer.style.height = (remaining * this.ESTIMATED_ROW_HEIGHT) + 'px';
+                this.tbody.appendChild(spacer);
+            }
+
+            // Notify that rows have been rendered (for event listener reattachment)
+            if (this.onRender) this.onRender();
+        },
+
+        /** Set callback for when rows are rendered */
+        setOnRender(callback) {
+            this.onRender = callback;
+        },
+
+        /** Update visible rows (called after filtering) */
+        updateVisibleRows(rows) {
+            this.visibleRows = rows;
+            if (this.enabled) {
+                this.render();
+            }
+        },
+
+        /** Disable virtual scrolling */
+        disable() {
+            this.enabled = false;
+            if (this.tbody && this.allRows.length > 0) {
+                this.tbody.innerHTML = '';
+                this.allRows.forEach(row => this.tbody.appendChild(row));
+            }
+        }
+    };
+
+    /**
      * Log Filtering Module (SOLID: Single Responsibility)
      * Handles all log filtering logic with intelligent search, regex, and level filtering.
      */
@@ -102,6 +263,10 @@
             if (!logsTable) return;
 
             this.logRows = logsTable.querySelectorAll('tr[data-saci-var-key]');
+
+            // Initialize virtual scrolling if needed
+            virtualScroll.init(logsTable);
+
             this.restoreFilters();
             this.attachEventListeners();
             this.applyFilters();
@@ -154,14 +319,30 @@
                 errorLevels: this.ERROR_LEVELS
             };
 
-            let visibleCount = 0;
-
-            this.logRows.forEach(row => {
-                const shouldShow = this.shouldShowRow(row, filters);
-                shouldShow ? this.showLogRow(row) && visibleCount++ : this.hideLogRow(row);
-            });
-
-            this.updateStats(visibleCount, this.logRows.length);
+            if (virtualScroll.enabled) {
+                // Virtual scrolling mode: filter rows and pass to virtual scroller
+                const visibleRows = [];
+                this.logRows.forEach(row => {
+                    if (this.shouldShowRow(row, filters)) {
+                        visibleRows.push(row);
+                    }
+                });
+                virtualScroll.updateVisibleRows(visibleRows);
+                this.updateStats(visibleRows.length, this.logRows.length);
+            } else {
+                // Standard mode: show/hide with CSS
+                let visibleCount = 0;
+                this.logRows.forEach(row => {
+                    const shouldShow = this.shouldShowRow(row, filters);
+                    if (shouldShow) {
+                        this.showLogRow(row);
+                        visibleCount++;
+                    } else {
+                        this.hideLogRow(row);
+                    }
+                });
+                this.updateStats(visibleCount, this.logRows.length);
+            }
         },
 
         /**
@@ -581,6 +762,7 @@
                     this.isResizing = false;
                     this.didResize = true;
                     document.body.style.userSelect = '';
+                    saciEl.classList.remove('saci-no-transition');
                     document.removeEventListener('mousemove', onMove);
                     document.removeEventListener('mouseup', onUp);
                 };
@@ -599,6 +781,7 @@
                             pending = false;
                             this.isResizing = true;
                             document.body.style.userSelect = 'none';
+                            saciEl.classList.add('saci-no-transition');
                             document.addEventListener('mousemove', onMove);
                             document.addEventListener('mouseup', onUp);
                             onMove(ev);
@@ -717,6 +900,14 @@
                     // Reapply log filters to include new late logs
                     if (logFilters.logRows) {
                         logFilters.logRows = logsTable.querySelectorAll('tr[data-saci-var-key]');
+
+                        // Reinitialize virtual scrolling if threshold crossed
+                        if (!virtualScroll.enabled && logFilters.logRows.length > virtualScroll.THRESHOLD) {
+                            virtualScroll.init(logsTable);
+                        } else if (virtualScroll.enabled) {
+                            virtualScroll.allRows = Array.from(logFilters.logRows);
+                        }
+
                         logFilters.applyFilters();
                     }
                 } catch (e) {
@@ -1149,12 +1340,52 @@
                     route: root.querySelector('#saci-tabpanel-route'),
                     logs: root.querySelector('#saci-tabpanel-logs')
                 };
+
+                // Check if user prefers reduced motion
+                const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
                 Object.keys(panels).forEach(k => {
                     const el = panels[k]; if (!el) return;
                     const isActive = (k === state.tab);
-                    el.classList.toggle('saci-panel-active', isActive);
-                    // Only toggle display to reduce layout work
-                    el.style.display = isActive ? 'block' : 'none';
+
+                    if (prefersReducedMotion) {
+                        // No transition for users who prefer reduced motion
+                        el.style.display = isActive ? 'block' : 'none';
+                        el.classList.toggle('saci-panel-active', isActive);
+                    } else if (isActive) {
+                        // === ENTERING PANEL (new active tab) ===
+
+                        // 1. Make visible and add enter state
+                        el.style.display = 'block';
+                        el.classList.remove('saci-panel-active', 'saci-panel-exit');
+                        el.classList.add('saci-panel-enter');
+
+                        // 2. Force reflow
+                        void el.offsetHeight;
+
+                        // 3. Transition to active state
+                        requestAnimationFrame(() => {
+                            el.classList.remove('saci-panel-enter');
+                            el.classList.add('saci-panel-active');
+                        });
+                    } else {
+                        // === EXITING PANEL (was active, now hiding) ===
+
+                        // Skip if already hidden
+                        if (el.style.display === 'none') return;
+
+                        // 1. Add exit state
+                        el.classList.remove('saci-panel-active', 'saci-panel-enter');
+                        el.classList.add('saci-panel-exit');
+
+                        // 2. Wait for exit animation to complete, then hide
+                        setTimeout(() => {
+                            if (el.classList.contains('saci-panel-exit')) {
+                                el.style.display = 'none';
+                                el.classList.remove('saci-panel-exit');
+                            }
+                        }, 320); // Match longest CSS transition (transform: 320ms)
+                    }
                 });
             };
             const toggleActiveTabs = () => {
@@ -1388,6 +1619,11 @@
                 : state.tab === 'route'
                   ? root.querySelector('#saci-tabpanel-route')
                   : root.querySelector('#saci-tabpanel-logs');
+            // Ensure initial panel has active class (no animation on first load)
+            if (initialPanel) {
+                initialPanel.classList.remove('saci-panel-enter', 'saci-panel-exit');
+                initialPanel.classList.add('saci-panel-active');
+            }
             // Alpine.js no longer used
 
             // Header summaries (views/request) in vanilla mode
@@ -1477,6 +1713,7 @@
                         if (!isResizing) return;
                         isResizing = false;
                         document.body.style.userSelect = '';
+                        root.classList.remove('saci-no-transition');
                         document.removeEventListener('mousemove', onMove);
                         document.removeEventListener('mouseup', onUp);
                         // prevent the subsequent click from toggling
@@ -1489,6 +1726,7 @@
                             pending = false;
                             isResizing = true;
                             document.body.style.userSelect = 'none';
+                            root.classList.add('saci-no-transition');
                             document.addEventListener('mousemove', onMove);
                             document.addEventListener('mouseup', onUp);
                             onMove(ev);
@@ -1503,6 +1741,11 @@
             attachCardListeners();
             attachVarRowListeners();
             restoreVarRowsFromStorage();
+
+            // Set callback for virtual scroll to reattach listeners after render
+            virtualScroll.setOnRender(() => {
+                attachVarRowListeners();
+            });
 
             // Initialize log filters if logs tab is initially selected
             if (state.tab === 'logs') {
