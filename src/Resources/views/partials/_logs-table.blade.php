@@ -27,10 +27,11 @@
                 type="text"
                 id="saci-log-time-filter"
                 class="saci-filter-input"
-                placeholder="Filter time..."
+                placeholder="HH:MM:SS or 14:3*"
                 aria-label="Filter by time"
-                title="Filter by time (e.g., 14:30, 14:3*, *:45)"
+                title="Examples: 14:30:15, 14:3*, *:45, 14:*"
                 autocomplete="off"
+                spellcheck="false"
             >
         </div>
 
