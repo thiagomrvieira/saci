@@ -61,6 +61,351 @@
     /** Clamp a number between bounds. @param {number} v @param {number} lo @param {number} hi @returns {number} */
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
+    /**
+     * Log Filtering Module (SOLID: Single Responsibility)
+     * Handles all log filtering logic with intelligent search, regex, and level filtering.
+     */
+    const logFilters = {
+        // Constants
+        ERROR_LEVELS: ['emergency', 'alert', 'critical', 'error'],
+        FUZZY_PROXIMITY: 15,
+        UNIQUE_RATIO_THRESHOLD: 0.4,
+        QUERY_LENGTH_LIMIT: 20,
+
+        // DOM elements
+        searchInput: null,
+        clearBtn: null,
+        levelSelect: null,
+        timeFilter: null,
+        errorsOnlyCheckbox: null,
+        regexCheckbox: null,
+        statsText: null,
+        logRows: null,
+
+        /** Initialize log filtering functionality. */
+        init() {
+            // Cache DOM elements (Object.assign for cleaner code)
+            Object.assign(this, {
+                searchInput: document.getElementById('saci-log-search'),
+                clearBtn: document.getElementById('saci-log-search-clear'),
+                levelSelect: document.getElementById('saci-log-level-filter'),
+                timeFilter: document.getElementById('saci-log-time-filter'),
+                errorsOnlyCheckbox: document.getElementById('saci-log-errors-only'),
+                regexCheckbox: document.getElementById('saci-log-regex'),
+                statsText: document.getElementById('saci-log-stats-text')
+            });
+
+            // Early return if essential elements missing
+            if (!this.searchInput || !this.levelSelect) return;
+
+            const logsTable = document.querySelector('.saci-table-logs tbody');
+            if (!logsTable) return;
+
+            this.logRows = logsTable.querySelectorAll('tr[data-saci-var-key]');
+            this.restoreFilters();
+            this.attachEventListeners();
+            this.applyFilters();
+        },
+
+        /** Attach event listeners with DRY helper. */
+        attachEventListeners() {
+            const onFilterChange = () => {
+                this.applyFilters();
+                this.persistFilters();
+            };
+
+            // Search with clear button
+            this.searchInput?.addEventListener('input', () => {
+                onFilterChange();
+                this.updateClearButton();
+            });
+
+            this.clearBtn?.addEventListener('click', () => {
+                this.searchInput.value = '';
+                onFilterChange();
+                this.updateClearButton();
+                this.searchInput.focus();
+            });
+
+            // Level and time filters
+            this.levelSelect?.addEventListener('change', onFilterChange);
+            this.timeFilter?.addEventListener('input', onFilterChange);
+            this.regexCheckbox?.addEventListener('change', onFilterChange);
+
+            // Errors-only toggle (clears level filter)
+            this.errorsOnlyCheckbox?.addEventListener('change', () => {
+                if (this.errorsOnlyCheckbox.checked) {
+                    this.levelSelect.value = '';
+                }
+                onFilterChange();
+            });
+        },
+
+        /** Apply all active filters to log rows. */
+        applyFilters() {
+            if (!this.logRows) return;
+
+            const filters = {
+                searchText: this.searchInput?.value.trim() || '',
+                levelFilter: this.levelSelect?.value.toLowerCase() || '',
+                timeFilterText: this.timeFilter?.value.trim() || '',
+                errorsOnly: this.errorsOnlyCheckbox?.checked || false,
+                useRegex: this.regexCheckbox?.checked || false,
+                errorLevels: this.ERROR_LEVELS
+            };
+
+            let visibleCount = 0;
+
+            this.logRows.forEach(row => {
+                const shouldShow = this.shouldShowRow(row, filters);
+                shouldShow ? this.showLogRow(row) && visibleCount++ : this.hideLogRow(row);
+            });
+
+            this.updateStats(visibleCount, this.logRows.length);
+        },
+
+        /**
+         * Determine if a row should be visible based on filters.
+         * @param {HTMLTableRowElement} row
+         * @param {{searchText:string, levelFilter:string, timeFilterText:string, errorsOnly:boolean, useRegex:boolean, errorLevels:string[]}} filters
+         * @returns {boolean}
+         */
+        shouldShowRow(row, { searchText, levelFilter, timeFilterText, errorsOnly, useRegex, errorLevels }) {
+            // Extract row data (pure functions for testability)
+            const getText = (selector) => row.querySelector(selector)?.textContent.trim() || '';
+
+            const level = getText('.saci-badge-level').toLowerCase() || 'info';
+            const time = getText('.saci-col-time');
+            const searchableText = `${getText('.saci-col-message .saci-inline-preview')} ${getText('.saci-col-context .saci-inline-preview')}`.toLowerCase();
+
+            // Chain filters (early return for performance)
+            return !(
+                (errorsOnly && !errorLevels.includes(level)) ||
+                (levelFilter && level !== levelFilter) ||
+                (timeFilterText && !this.matchesTime(time, timeFilterText)) ||
+                (searchText && !this.matchesSearch(searchableText, searchText, useRegex))
+            );
+        },
+
+        /**
+         * Check if text matches search query (with regex and fuzzy search support).
+         * @param {string} text - Text to search in
+         * @param {string} query - Search query
+         * @param {boolean} useRegex - Whether to use regex
+         * @returns {boolean}
+         */
+        matchesSearch(text, query, useRegex) {
+            if (!query) return true;
+
+            if (useRegex) {
+                try {
+                    const regex = new RegExp(query, 'i');
+                    return regex.test(text);
+                } catch (e) {
+                    // Invalid regex, fallback to simple search
+                    return text.includes(query.toLowerCase());
+                }
+            } else {
+                // Intelligent search: substring or smart fuzzy
+                return this.intelligentMatch(text, query.toLowerCase());
+            }
+        },
+
+        /**
+         * Intelligent matching: substring or smart fuzzy (avoids false positives).
+         * @param {string} text - Text to search in
+         * @param {string} query - Search query (lowercase)
+         * @returns {boolean}
+         */
+        intelligentMatch(text, query) {
+            if (text.includes(query)) return true;
+            if (query.length > this.QUERY_LENGTH_LIMIT || this.isRepetitiveQuery(query)) return false;
+            return this.fuzzyMatch(text, query);
+        },
+
+        /**
+         * Check if query is repetitive (e.g., "aaaa" has low character diversity).
+         * @param {string} query
+         * @returns {boolean}
+         */
+        isRepetitiveQuery(query) {
+            return query.length >= 3 && (new Set(query).size / query.length) < this.UNIQUE_RATIO_THRESHOLD;
+        },
+
+        /**
+         * Fuzzy match: all query chars appear in order with proximity check.
+         * @param {string} text
+         * @param {string} query
+         * @returns {boolean}
+         */
+        fuzzyMatch(text, query) {
+            let queryIndex = 0;
+            let lastMatchIndex = -1;
+
+            for (let i = 0; i < text.length && queryIndex < query.length; i++) {
+                if (text[i] === query[queryIndex] &&
+                    (lastMatchIndex === -1 || i - lastMatchIndex < this.FUZZY_PROXIMITY)) {
+                    queryIndex++;
+                    lastMatchIndex = i;
+                }
+            }
+
+            return queryIndex === query.length;
+        },
+
+        /**
+         * Match time with wildcard support (e.g., "14:3*", "*:45").
+         * @param {string} timeText
+         * @param {string} filterText
+         * @returns {boolean}
+         */
+        matchesTime(timeText, filterText) {
+            if (!filterText || !timeText) return !filterText;
+
+            const lower = filterText.toLowerCase();
+            if (timeText.toLowerCase().includes(lower)) return true;
+
+            try {
+                const pattern = lower.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+                return new RegExp(`^${pattern}$`, 'i').test(timeText);
+            } catch {
+                return false;
+            }
+        },
+
+        /**
+         * Show a log row with smooth fade-in animation.
+         * @param {HTMLTableRowElement} row
+         */
+        showLogRow(row) {
+            // Remove all hiding/hidden classes
+            row.classList.remove('saci-log-hidden', 'saci-log-hiding');
+
+            // Force reflow to ensure display: none is removed before animating
+            void row.offsetHeight;
+
+            // Fade in (opacity transition)
+            requestAnimationFrame(() => {
+                row.style.opacity = '1';
+            });
+        },
+
+        /**
+         * Hide a log row with smooth fade-out animation, then remove from layout.
+         * Uses the two-phase approach: fade out → display none (no empty gaps!)
+         * @param {HTMLTableRowElement} row
+         */
+        hideLogRow(row) {
+            // Already hidden? Skip
+            if (row.classList.contains('saci-log-hidden')) return;
+
+            // Check if user prefers reduced motion
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            if (prefersReducedMotion) {
+                // Skip animation, hide immediately
+                row.classList.add('saci-log-hidden');
+                return;
+            }
+
+            // Phase 1: Start fade out animation
+            row.classList.add('saci-log-hiding');
+
+            // Phase 2: After animation completes, remove from layout (no gaps!)
+            const onTransitionEnd = (e) => {
+                // Only respond to opacity transition on this specific row
+                if (e.propertyName === 'opacity' && e.target === row) {
+                    row.classList.remove('saci-log-hiding');
+                    row.classList.add('saci-log-hidden');
+                    row.removeEventListener('transitionend', onTransitionEnd);
+                }
+            };
+
+            row.addEventListener('transitionend', onTransitionEnd);
+
+            // Fallback: ensure hiding completes even if transitionend doesn't fire
+            setTimeout(() => {
+                if (row.classList.contains('saci-log-hiding')) {
+                    row.classList.remove('saci-log-hiding');
+                    row.classList.add('saci-log-hidden');
+                    row.removeEventListener('transitionend', onTransitionEnd);
+                }
+            }, 250); // Slightly longer than transition duration (180ms)
+        },
+
+        /**
+         * Update the stats display.
+         * @param {number} visible - Number of visible logs
+         * @param {number} total - Total number of logs
+         */
+        updateStats(visible, total) {
+            if (!this.statsText) return;
+
+            if (visible === total) {
+                this.statsText.textContent = `${total} ${total === 1 ? 'log' : 'logs'}`;
+            } else {
+                this.statsText.textContent = `${total} ${total === 1 ? 'log' : 'logs'} (showing ${visible} filtered)`;
+            }
+        },
+
+        /** Update clear button visibility. */
+        updateClearButton() {
+            if (!this.clearBtn || !this.searchInput) return;
+
+            if (this.searchInput.value.trim()) {
+                this.clearBtn.classList.remove('saci-hidden');
+            } else {
+                this.clearBtn.classList.add('saci-hidden');
+            }
+        },
+
+        /** Persist filter state to localStorage. */
+        persistFilters() {
+            try {
+                const state = {
+                    search: this.searchInput ? this.searchInput.value : '',
+                    level: this.levelSelect ? this.levelSelect.value : '',
+                    time: this.timeFilter ? this.timeFilter.value : '',
+                    errorsOnly: this.errorsOnlyCheckbox ? this.errorsOnlyCheckbox.checked : false,
+                    regex: this.regexCheckbox ? this.regexCheckbox.checked : false
+                };
+                storage.set('saci.logFilters', JSON.stringify(state));
+            } catch (e) {
+                // Silently fail
+            }
+        },
+
+        /** Restore filter state from localStorage. */
+        restoreFilters() {
+            try {
+                const saved = storage.get('saci.logFilters');
+                if (!saved) return;
+
+                const state = JSON.parse(saved);
+
+                if (this.searchInput && state.search) {
+                    this.searchInput.value = state.search;
+                }
+                if (this.levelSelect && state.level) {
+                    this.levelSelect.value = state.level;
+                }
+                if (this.timeFilter && state.time) {
+                    this.timeFilter.value = state.time;
+                }
+                if (this.errorsOnlyCheckbox && state.errorsOnly) {
+                    this.errorsOnlyCheckbox.checked = true;
+                }
+                if (this.regexCheckbox && state.regex) {
+                    this.regexCheckbox.checked = true;
+                }
+
+                this.updateClearButton();
+            } catch (e) {
+                // Silently fail
+            }
+        }
+    };
+
     /** Component factory for the Saci bar (reused by vanilla init). @returns {object} */
     window.saciBar = function() {
         return {
@@ -169,17 +514,32 @@
 
             /** Helper: restore a row that should be open (inline or valueRow). */
             restoreRowOpenState(row) {
-                const inline = row.querySelector('.saci-dump-inline');
-                if (inline) {
-                    this.showInlineDump(row, inline);
-                    const dumpId = inline.getAttribute('data-dump-id');
-                    const requestId = inline.getAttribute('data-request-id');
-                    const content = inline.querySelector('.saci-dump-content');
-                    // Check if content is truly empty (no HTML elements AND no text)
-                    const isEmpty = content && content.childElementCount === 0 && !content.textContent.trim();
-                    if (dumpId && requestId && isEmpty) {
-                        this.loadDumpInto(inline, requestId, dumpId);
-                    }
+                // Check for inline dumps (logs have both message and context)
+                const inlines = row.querySelectorAll('.saci-dump-inline');
+                if (inlines.length > 0) {
+                    // Restore ALL inline dumps in the row (message + context)
+                    inlines.forEach(inline => {
+                        const cell = inline.closest('.saci-preview');
+                        const preview = cell ? cell.querySelector('.saci-inline-preview') : null;
+                        if (preview) preview.style.display = 'none';
+                        inline.classList.remove('saci-hidden');
+                        inline.style.display = 'block';
+
+                        const dumpId = inline.getAttribute('data-dump-id');
+                        const requestId = inline.getAttribute('data-request-id');
+                        const content = inline.querySelector('.saci-dump-content');
+                        const isEmpty = content && content.childElementCount === 0 && !content.textContent.trim();
+
+                        // Show preview text immediately if content is empty
+                        if (isEmpty && preview && preview.textContent) {
+                            content.textContent = preview.textContent;
+                        }
+
+                        // Load full dump if available
+                        if (dumpId && requestId && isEmpty) {
+                            this.loadDumpInto(inline, requestId, dumpId);
+                        }
+                    });
                     return;
                 }
                 const valueRow = row.nextElementSibling;
@@ -353,6 +713,12 @@
                             badge.textContent = String(currentCount + data.logs.length);
                         }
                     }
+
+                    // Reapply log filters to include new late logs
+                    if (logFilters.logRows) {
+                        logFilters.logRows = logsTable.querySelectorAll('tr[data-saci-var-key]');
+                        logFilters.applyFilters();
+                    }
                 } catch (e) {
                     // Silently fail if late logs can't be fetched (expected in many cases)
                     console.debug('Saci: Could not fetch late logs', e);
@@ -495,13 +861,6 @@
                     if (cardKey && varKey) this.setRowOpen(cardKey, varKey, true);
                 } catch (e) {}
 
-                // Expand File column to show full path (toggle preview/full)
-                const filePreview = row.querySelector('.saci-col-file .saci-file-preview');
-                const fileFull = row.querySelector('.saci-col-file .saci-file-full');
-                if (filePreview && fileFull) {
-                    filePreview.style.display = 'none';
-                    fileFull.style.display = 'inline';
-                }
                 // Ensure container can fit the newly opened content
                 this.adjustHeightToFit(row);
             },
@@ -521,14 +880,6 @@
                     const varKey = this.getVarKey(row);
                     if (cardKey && varKey) this.setRowOpen(cardKey, varKey, false);
                 } catch (e) {}
-
-                // Collapse File column back to filename
-                const filePreview = row.querySelector('.saci-col-file .saci-file-preview');
-                const fileFull = row.querySelector('.saci-col-file .saci-file-full');
-                if (filePreview && fileFull) {
-                    fileFull.style.display = 'none';
-                    filePreview.style.display = 'inline';
-                }
             },
 
             /** Collapse when clicking the inline container (not inside sf-dump).
@@ -775,6 +1126,12 @@
                 togglePanels();
                 toggleActiveTabs();
                 renderHeaderSummary();
+
+                // Initialize log filters when logs tab is opened
+                if (name === 'logs') {
+                    // Use setTimeout to ensure DOM is ready
+                    setTimeout(() => logFilters.init(), 0);
+                }
                 // Ensure selected panel is un-cloaked
                 const current = name === 'views'
                   ? root.querySelector('#saci-tabpanel-views')
@@ -962,25 +1319,32 @@
                         try {
                             const isOpen = storage.get('saci.var.' + cardKey + '.' + varKey) === '1';
                             if (!isOpen) return;
-                            // Prefer inline dump if available
-                            const inline = row.querySelector('.saci-dump-inline');
-                            if (inline) {
-                                const content = inline.querySelector('.saci-dump-content');
-                                const dumpId = inline.getAttribute('data-dump-id');
-                                const requestId = inline.getAttribute('data-request-id');
-                                const preview = row.querySelector('.saci-inline-preview');
-                                if (preview && preview.style) preview.style.display = 'none';
-                                inline.classList.remove('saci-hidden');
-                                inline.style.display = 'block';
-                                // Check if content is truly empty (no HTML elements AND no text)
-                                const isEmpty = content && content.childElementCount === 0 && !content.textContent.trim();
-                                // Fallback: immediately render preview text so area is never empty
-                                if (isEmpty && preview && preview.textContent) {
-                                    content.textContent = preview.textContent;
-                                }
-                                if (dumpId && requestId && isEmpty) {
-                                    api.loadDumpInto(inline, requestId, dumpId);
-                                }
+                            // Check for inline dumps (logs have both message and context)
+                            const inlines = row.querySelectorAll('.saci-dump-inline');
+                            if (inlines.length > 0) {
+                                // Restore ALL inline dumps in the row (message + context)
+                                inlines.forEach(inline => {
+                                    const cell = inline.closest('.saci-preview');
+                                    const preview = cell ? cell.querySelector('.saci-inline-preview') : null;
+                                    if (preview && preview.style) preview.style.display = 'none';
+                                    inline.classList.remove('saci-hidden');
+                                    inline.style.display = 'block';
+
+                                    const content = inline.querySelector('.saci-dump-content');
+                                    const dumpId = inline.getAttribute('data-dump-id');
+                                    const requestId = inline.getAttribute('data-request-id');
+                                    const isEmpty = content && content.childElementCount === 0 && !content.textContent.trim();
+
+                                    // Fallback: immediately render preview text so area is never empty
+                                    if (isEmpty && preview && preview.textContent) {
+                                        content.textContent = preview.textContent;
+                                    }
+
+                                    // Load full dump if available
+                                    if (dumpId && requestId && isEmpty) {
+                                        api.loadDumpInto(inline, requestId, dumpId);
+                                    }
+                                });
                                 return;
                             }
                             // Fallback: open value row
@@ -1036,6 +1400,7 @@
             const totalViews = (root.getAttribute('data-total-views') || '');
             const methodStr = (root.getAttribute('data-method') || '').trim();
             const uriStr = (root.getAttribute('data-uri') || '').trim();
+            const logsCount = (root.getAttribute('data-logs-count') || '0');
             const controls = root.querySelector('#saci-controls');
             const renderHeaderSummary = () => {
                 if (!controls) return;
@@ -1052,6 +1417,10 @@
                           '<strong class="' + requestClass + '" ' + (requestTooltip ? ('data-saci-tooltip="' + requestTooltip.replace(/"/g, '&quot;') + '"') : '') + '>' + requestDisplay + '</strong></div></div>';
                     } else if (state.tab === 'route') {
                         right.innerHTML = '<div class="saci-summary" style="margin:0;"><div class="saci-summary-left">' + methodStr + ' ' + uriStr + '</div></div>';
+                    } else if (state.tab === 'logs') {
+                        const logsLabel = (parseInt(logsCount) === 1) ? 'log' : 'logs';
+                        right.innerHTML = '<div class="saci-summary" style="margin:0;"><div class="saci-summary-right">' +
+                          '<strong>' + logsCount + '</strong> ' + logsLabel + ' collected</div></div>';
                     } else {
                         right.innerHTML = '';
                     }
@@ -1063,6 +1432,9 @@
                         version.innerHTML = 'Response time: <strong class="' + requestClass + '" ' + (requestTooltip ? ('data-saci-tooltip="' + requestTooltip.replace(/"/g, '&quot;') + '"') : '') + '>' + requestDisplay + '</strong>';
                     } else if (state.tab === 'route') {
                         version.innerHTML = methodStr + ' ' + uriStr;
+                    } else if (state.tab === 'logs') {
+                        const logsLabel = (parseInt(logsCount) === 1) ? 'log' : 'logs';
+                        version.innerHTML = '<strong>' + logsCount + '</strong> ' + logsLabel;
                     } else {
                         version.innerHTML = '';
                     }
@@ -1131,6 +1503,11 @@
             attachCardListeners();
             attachVarRowListeners();
             restoreVarRowsFromStorage();
+
+            // Initialize log filters if logs tab is initially selected
+            if (state.tab === 'logs') {
+                setTimeout(() => logFilters.init(), 0);
+            }
 
             // Vanilla tooltips
             const ensurePopover = () => {

@@ -32,6 +32,7 @@
     $requestMeta = null;
     $method = $resources['request']['method'] ?? null;
     $uri = $resources['route']['uri'] ?? null;
+    $logsCount = count($resources['logs'] ?? []);
     if ($trackPerf) {
         $requestDurationMs = (isset($resources['response']['duration_ms']) && is_numeric($resources['response']['duration_ms']))
             ? (float) $resources['response']['duration_ms']
@@ -54,6 +55,7 @@
     data-total-views="{{ $total }}"
     data-method="{{ $method }}"
     data-uri="{{ $uri }}"
+    data-logs-count="{{ $logsCount }}"
 >
     @include('saci::partials.header', [
         'version' => $version,

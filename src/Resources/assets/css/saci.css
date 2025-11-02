@@ -12,6 +12,7 @@
     opacity: var(--saci-alpha, 1);
     box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
     overflow: hidden;
+    transition: max-height 420ms cubic-bezier(0.25, 0.1, 0.25, 1);
     /* Theme tokens */
     --saci-c-text: #e2e8f0;
     --saci-c-muted: #a0aec0;
@@ -95,6 +96,7 @@
 #saci-content {
     padding: 12px;
     overflow-y: auto;
+    transition: max-height 420ms cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 #saci-content ul { margin: 0; padding: 0; list-style: none; }
 
@@ -176,6 +178,37 @@
 /* Clickable variable rows */
 .saci-table tbody tr[data-saci-var-key] { cursor: pointer; }
 .saci-table tbody tr[data-saci-var-key]:hover { background: rgba(148,163,184,0.06); }
+
+/* Log row filtering transitions - smooth fade with proper layout removal */
+.saci-table-logs tbody tr[data-saci-var-key] {
+    opacity: 1;
+    transition: opacity 180ms ease;
+}
+
+/* Phase 1: Fade out (animated) */
+.saci-table-logs tbody tr[data-saci-var-key].saci-log-hiding {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Phase 2: Remove from layout (applied after transition via JS) */
+.saci-table-logs tbody tr[data-saci-var-key].saci-log-hidden {
+    display: none;
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .saci-table-logs tbody tr[data-saci-var-key] {
+        transition: none;
+    }
+    .saci-table-logs tbody tr[data-saci-var-key].saci-log-hiding {
+        display: none; /* Skip animation, hide immediately */
+    }
+    #saci,
+    #saci-content {
+        transition: none;
+    }
+}
 
 .saci-pre {
     margin: 0;
@@ -399,4 +432,304 @@ th.saci-col-level { text-align: left; }
 
 /* Default theme: keep time badges without border (text still inherits severity color) */
 #saci.saci-theme-default .saci-badge.saci-badge-ms { border: none !important; }
+
+/* Log Filters - Grid Layout aligned with table columns */
+.saci-log-filters {
+    margin-bottom: 12px;
+    padding: 10px;
+    background: rgba(15,23,42,0.4);
+    border: 1px solid var(--saci-c-border);
+    border-radius: 6px;
+}
+
+/* Filter Grid - matches table column widths */
+.saci-filter-grid {
+    display: grid;
+    grid-template-columns: 100px 128px 1fr;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+/* Filter cells */
+.saci-filter-cell {
+    position: relative;
+}
+
+/* Level filter column */
+.saci-filter-level {
+    grid-column: 1;
+}
+
+/* Time filter column */
+.saci-filter-time {
+    grid-column: 2;
+}
+
+/* Search spans both message and context columns */
+.saci-filter-search {
+    grid-column: 3;
+}
+
+/* Unified filter input styling */
+.saci-filter-input {
+    width: 100%;
+    padding: 6px 8px;
+    background: rgba(30,41,59,0.6);
+    border: 1px solid var(--saci-c-border);
+    border-radius: 4px;
+    color: var(--saci-c-text);
+    font-family: 'Fira Code', monospace;
+    font-size: 0.82em;
+    transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.saci-filter-input:hover {
+    background: rgba(30,41,59,0.75);
+    border-color: rgba(148,163,184,0.3);
+}
+
+.saci-filter-input:focus {
+    outline: none;
+    border-color: rgba(239,68,68,0.6);
+    background: rgba(30,41,59,0.85);
+}
+
+.saci-filter-input::placeholder {
+    color: var(--saci-c-muted);
+    opacity: 0.55;
+    font-size: 0.95em;
+}
+
+/* Search wrapper for clear button */
+.saci-search-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.saci-search-input {
+    padding-right: 30px;
+}
+
+.saci-search-clear {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: rgba(239,68,68,0.2);
+    border: 1px solid rgba(239,68,68,0.4);
+    border-radius: 50%;
+    color: var(--saci-c-accent);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 160ms ease, border-color 160ms ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.saci-search-clear:hover {
+    background: rgba(239,68,68,0.3);
+    border-color: rgba(239,68,68,0.6);
+}
+
+.saci-search-clear:focus {
+    outline: 2px solid rgba(239,68,68,0.5);
+    outline-offset: 2px;
+}
+
+/* Secondary actions row */
+.saci-filter-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(148,163,184,0.08);
+}
+
+.saci-filter-toggles {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Toggle Checkboxes */
+.saci-errors-toggle,
+.saci-regex-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(30,41,59,0.6);
+    border: 1px solid var(--saci-c-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 160ms ease, border-color 160ms ease;
+    user-select: none;
+}
+
+.saci-errors-toggle:hover,
+.saci-regex-toggle:hover {
+    background: rgba(30,41,59,0.8);
+    border-color: rgba(148,163,184,0.35);
+}
+
+.saci-errors-toggle input[type="checkbox"],
+.saci-regex-toggle input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+    width: 14px;
+    height: 14px;
+    accent-color: var(--saci-c-accent);
+}
+
+.saci-errors-toggle input[type="checkbox"]:focus,
+.saci-regex-toggle input[type="checkbox"]:focus {
+    outline: 2px solid rgba(239,68,68,0.5);
+    outline-offset: 2px;
+}
+
+.saci-toggle-label {
+    color: var(--saci-c-text);
+    font-size: 0.82em;
+    font-family: 'Fira Code', monospace;
+}
+
+.saci-errors-toggle input[type="checkbox"]:checked + .saci-toggle-label,
+.saci-regex-toggle input[type="checkbox"]:checked + .saci-toggle-label {
+    color: var(--saci-c-accent);
+    font-weight: bold;
+}
+
+/* Regex toggle special styling */
+.saci-regex-toggle {
+    min-width: 42px;
+    justify-content: center;
+}
+
+.saci-regex-toggle .saci-toggle-label {
+    font-size: 0.9em;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+}
+
+/* Filter Stats */
+.saci-filter-stats {
+    font-size: 0.82em;
+    color: var(--saci-c-muted);
+    font-family: 'Fira Code', monospace;
+    white-space: nowrap;
+}
+
+.saci-filter-stats #saci-log-stats-text {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Theme Overrides for Filters */
+#saci.saci-theme-dark .saci-filter-input {
+    background: rgba(17,17,17,0.8);
+    border-color: rgba(255,255,255,0.08);
+}
+
+#saci.saci-theme-dark .saci-filter-input:hover {
+    background: rgba(17,17,17,0.9);
+    border-color: rgba(255,255,255,0.12);
+}
+
+#saci.saci-theme-dark .saci-filter-input:focus {
+    border-color: rgba(239,68,68,0.6);
+    background: rgba(17,17,17,0.95);
+}
+
+#saci.saci-theme-dark .saci-errors-toggle,
+#saci.saci-theme-dark .saci-regex-toggle {
+    background: rgba(17,17,17,0.6);
+    border-color: rgba(255,255,255,0.08);
+}
+
+#saci.saci-theme-dark .saci-log-filters {
+    background: rgba(10,10,10,0.4);
+    border-color: rgba(255,255,255,0.06);
+}
+
+#saci.saci-theme-dark .saci-filter-actions {
+    border-top-color: rgba(255,255,255,0.06);
+}
+
+#saci.saci-theme-minimal .saci-filter-input {
+    background: rgba(11,11,11,0.6);
+    border-color: rgba(255,255,255,0.08);
+}
+
+#saci.saci-theme-minimal .saci-filter-input:hover {
+    background: rgba(11,11,11,0.75);
+    border-color: rgba(255,255,255,0.12);
+}
+
+#saci.saci-theme-minimal .saci-errors-toggle,
+#saci.saci-theme-minimal .saci-regex-toggle {
+    background: rgba(11,11,11,0.4);
+    border-color: rgba(255,255,255,0.08);
+}
+
+#saci.saci-theme-minimal .saci-log-filters {
+    background: transparent;
+    border-color: rgba(255,255,255,0.06);
+}
+
+#saci.saci-theme-minimal .saci-filter-actions {
+    border-top-color: rgba(255,255,255,0.06);
+}
+
+/* Responsive adjustments for filters */
+@media (max-width: 1024px) {
+    .saci-filter-grid {
+        /* Stack filters vertically on smaller screens */
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    .saci-filter-level,
+    .saci-filter-time,
+    .saci-filter-search {
+        grid-column: 1;
+    }
+
+    .saci-filter-actions {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .saci-filter-toggles {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .saci-filter-stats {
+        width: 100%;
+    }
+}
+
+/* Ensure filter inputs don't overflow on very small screens */
+@media (max-width: 480px) {
+    .saci-filter-input {
+        font-size: 0.78em;
+    }
+
+    .saci-filter-toggles {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .saci-errors-toggle,
+    .saci-regex-toggle {
+        justify-content: center;
+    }
+}
 

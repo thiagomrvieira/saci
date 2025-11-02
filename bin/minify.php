@@ -25,8 +25,8 @@ function minify_js_conservative(string $js): string {
     foreach ($lines as &$line) { $line = trim($line); }
     unset($line);
     $js = implode("\n", $lines);
-    // Optional: remove spaces before/after common tokens
-    $js = preg_replace('/\s*([=+\-*/%<>!?&|,:;{}()\[\]])\s*/', '$1', $js) ?? $js;
+    // Optional: remove spaces before/after common tokens (but skip % to avoid regex issues)
+    $js = preg_replace('/\s*([=+\-*\/<>!?&|,:;{}()\[\]])\s*/', '$1', $js) ?? $js;
     return trim($js);
 }
 
