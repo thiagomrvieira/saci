@@ -2,66 +2,167 @@
 
 ## Overview
 
-Saci follows Laravel's best practices and modern PHP patterns, implementing a clean, modular architecture with proper separation of concerns.
+Saci follows Laravel's best practices and modern PHP patterns, implementing a clean, modular architecture with proper separation of concerns. The architecture is based on the **Collector Pattern**, inspired by Symfony Profiler, Laravel Telescope, and Clockwork.
 
-## Architecture Components
+## Architecture Principles
 
-### Core Classes
+1. **Collector Pattern**: Each data type has its own dedicated collector
+2. **Single Responsibility**: Each class has one well-defined purpose
+3. **Open/Closed Principle**: Easy to extend with new collectors without modifying core
+4. **Dependency Injection**: All dependencies injected via constructor
+5. **Interface Segregation**: Collectors implement a common interface
 
-#### 1. **SaciServiceProvider**
+## Architecture Layers
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   Presentation Layer                        │
+│  (Blade Views, JavaScript, CSS)                             │
+└─────────────────────────────────────────────────────────────┘
+                            ↑
+┌─────────────────────────────────────────────────────────────┐
+│                   Orchestration Layer                       │
+│  • SaciMiddleware (coordinates collectors)                  │
+│  • DebugBarInjector (renders output)                        │
+│  • RequestValidator (guards execution)                      │
+└─────────────────────────────────────────────────────────────┘
+                            ↑
+┌─────────────────────────────────────────────────────────────┐
+│                   Collection Layer                          │
+│  • CollectorRegistry (manages collectors)                   │
+│  • ViewCollector, RequestCollector, RouteCollector, etc.    │
+└─────────────────────────────────────────────────────────────┘
+                            ↑
+┌─────────────────────────────────────────────────────────────┐
+│                   Support Layer                             │
+│  • DumpManager, DumpStorage, LogProcessor, etc.             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Core Components
+
+### Orchestration Layer
+
+#### **SaciServiceProvider**
 - **Responsibility**: Package bootstrapping and service registration
 - **Features**:
   - Configuration merging
   - View loading
   - Middleware registration
+  - Collector registration via CollectorRegistry
   - Service container bindings
   - Configuration publishing
 
-#### 2. **SaciMiddleware**
-- **Responsibility**: Main middleware orchestrator
+#### **SaciMiddleware**
+- **Responsibility**: Request lifecycle orchestrator
 - **Features**:
-  - Request validation
-  - View tracking coordination
-  - Response modification coordination
-- **Dependencies**: TemplateTracker, DebugBarInjector, RequestValidator
+  - Validates if tracing should occur
+  - Resets and starts all collectors
+  - Sets request/response on collectors
+  - Triggers data collection
+  - Handles late logs (terminable middleware)
+- **Dependencies**: CollectorRegistry, DebugBarInjector, RequestValidator
 
-#### 3. **TemplateTracker**
-- **Responsibility**: View tracking and data collection
-- **Features**:
-  - View creator registration
-  - Template path extraction
-  - Data filtering and sanitization (masking)
-  - Uses DumpManager to build previews and persist dump ids per request
-  - Collection management
-
-#### 4. **DebugBarInjector**
+#### **DebugBarInjector**
 - **Responsibility**: Response modification and debug bar rendering
 - **Features**:
   - HTML content injection (skips non-HTML/binary/attachment)
+  - Extracts data from collectors via registry
+  - Formats data for view compatibility
   - View rendering
   - Error handling
-- **Dependencies**: TemplateTracker, RequestResources
+- **Dependencies**: CollectorRegistry
 
-#### 5. **RequestValidator**
+#### **RequestValidator**
 - **Responsibility**: Request validation logic
 - **Features**:
   - Gating via `saci.enabled` (inherits app.debug when null)
   - Skips ajax when disabled, skips JSON accept, IP allowlist
   - Skips BinaryFileResponse/StreamedResponse
+  - Skips Saci's own routes (recursive injection prevention)
 
-#### 6. **SaciConfig**
+#### **SaciConfig**
 - **Responsibility**: Configuration management
 - **Features**:
   - Centralized configuration access
   - Type-safe configuration methods
   - Default value management
+  - Collector enable/disable flags
 
-#### 7. **SaciInfo**
+#### **SaciInfo**
 - **Responsibility**: Package metadata
 - **Features**:
   - Version information
   - Author information
   - Package constants
+
+### Collection Layer
+
+#### **CollectorRegistry**
+- **Responsibility**: Central registry for all collectors
+- **Features**:
+  - Register collectors
+  - Get collector by name
+  - Start/collect/reset all collectors
+  - Filter enabled collectors
+  - Aggregate data from all collectors
+
+#### **CollectorInterface**
+- **Contract for all collectors**
+- **Methods**:
+  - `getName()`: Unique identifier
+  - `getLabel()`: Display label
+  - `start()`: Initialize collection
+  - `collect()`: Gather data
+  - `getData()`: Return collected data
+  - `isEnabled()`: Check if enabled
+  - `reset()`: Clean up for next request
+
+#### **BaseCollector**
+- **Abstract base class for collectors**
+- **Features**:
+  - Implements common collector logic
+  - Enable/disable via config
+  - Template method pattern (doStart, doCollect, doReset)
+  - Protected data storage
+
+#### **ViewCollector**
+- **Responsibility**: Collects Blade view data
+- **Delegates to**: TemplateTracker
+- **Data**: Templates, total count, request ID
+
+#### **RequestCollector**
+- **Responsibility**: Collects HTTP request/response metadata
+- **Data**: Method, URL, headers, body, query, cookies, session, duration
+
+#### **RouteCollector**
+- **Responsibility**: Collects route and controller information
+- **Data**: Route name, URI, methods, controller, middleware, parameters
+
+#### **AuthCollector**
+- **Responsibility**: Collects authentication data
+- **Data**: Guard, authenticated status, user ID, email, name
+
+#### **LogCollector**
+- **Responsibility**: Collects application logs
+- **Delegates to**: Support\LogCollector, LogProcessor
+- **Data**: Log entries with level, message, context, timestamp
+
+### Legacy Adapters
+
+#### **TemplateTracker**
+- **Kept for backward compatibility and specialized view tracking**
+- **Features**:
+  - View creator/composer registration
+  - Template path extraction
+  - Data filtering and sanitization
+  - Performance tracking
+  - Dump management
+
+#### **RequestResourcesAdapter**
+- **Backward compatibility adapter**
+- **Delegates to**: CollectorRegistry and individual collectors
+- **Deprecated**: Use CollectorRegistry directly
 
 ## Design Patterns
 
@@ -87,14 +188,30 @@ Saci follows Laravel's best practices and modern PHP patterns, implementing a cl
 ## Data Flow
 
 ```
-Request → Middleware → RequestValidator → TemplateTracker + RequestResources → DebugBarInjector → Response
+Request → Middleware → RequestValidator → CollectorRegistry
+                                              ↓
+                                    [Start All Collectors]
+                                              ↓
+                                    [Set Request/Response]
+                                              ↓
+                           Application Processing (Views, Routes, etc.)
+                                              ↓
+                                    [Collect All Data]
+                                              ↓
+                                    DebugBarInjector
+                                              ↓
+                                    Response with Debug Bar
 ```
 
-1. **Request** enters the middleware
+1. **Request** enters `SaciMiddleware`
 2. **RequestValidator** determines if tracing should occur
-3. **TemplateTracker** registers view creators and collects data
-4. **DebugBarInjector** modifies the response with debug information
-5. **Response** is returned with debug bar injected
+3. **CollectorRegistry** resets and starts all enabled collectors
+4. **Request/Response** is set on collectors that need it
+5. **Application processes** the request (views, controllers, etc.)
+6. **CollectorRegistry** triggers data collection from all collectors
+7. **DebugBarInjector** extracts data from registry and renders debug bar
+8. **Response** is returned with debug bar injected
+9. **Terminate**: Late logs are processed (after response sent)
 
 ## Configuration Structure (excerpt)
 
@@ -141,9 +258,29 @@ Request → Middleware → RequestValidator → TemplateTracker + RequestResourc
 - Configuration testing
 - Error scenario testing
 
+## Adding New Collectors
+
+Adding a new collector is straightforward:
+
+1. **Create collector class** extending `BaseCollector`
+2. **Implement required methods** (getName, getLabel, doCollect)
+3. **Register in ServiceProvider** via CollectorRegistry
+4. **Add config option** in `saci.php` (optional)
+5. **Create view template** (optional)
+
+See `src/Collectors/README.md` for detailed guide.
+
 ## Future Enhancements
 
-- Event-driven architecture for extensibility
-- Plugin system for custom data collectors
-- Advanced filtering and search capabilities
-- Performance metrics collection
+- **Additional Collectors**:
+  - DatabaseCollector (queries, N+1 detection)
+  - HttpClientCollector (external API calls)
+  - CacheCollector (cache operations)
+  - QueueCollector (dispatched jobs)
+  - MailCollector (sent emails)
+  - EventCollector (fired events)
+  - ExceptionCollector (caught exceptions)
+- **Analyzers Layer**: Post-processing for performance insights
+- **Timeline View**: Waterfall chart of request lifecycle
+- **Export/Import**: Save and share debug sessions
+- **API**: Programmatic access to collected data

@@ -7,12 +7,18 @@ use Illuminate\Contracts\Http\Kernel;
 use ThiagoVieira\Saci\SaciConfig;
 use ThiagoVieira\Saci\Support\DumpManager;
 use ThiagoVieira\Saci\Support\DumpStorage;
-use ThiagoVieira\Saci\Support\LogCollector;
+use ThiagoVieira\Saci\Support\LogCollector as SupportLogCollector;
 use ThiagoVieira\Saci\Support\LogProcessor;
 use ThiagoVieira\Saci\Support\LateLogsPersistence;
 use ThiagoVieira\Saci\Support\FilePathResolver;
+use ThiagoVieira\Saci\Support\CollectorRegistry;
 use ThiagoVieira\Saci\Http\Controllers\DumpController;
 use ThiagoVieira\Saci\Http\Controllers\AssetsController;
+use ThiagoVieira\Saci\Collectors\ViewCollector;
+use ThiagoVieira\Saci\Collectors\RequestCollector;
+use ThiagoVieira\Saci\Collectors\RouteCollector;
+use ThiagoVieira\Saci\Collectors\AuthCollector;
+use ThiagoVieira\Saci\Collectors\LogCollector;
 
 class SaciServiceProvider extends ServiceProvider
 {
@@ -73,9 +79,9 @@ class SaciServiceProvider extends ServiceProvider
             return new DumpManager($app->make(DumpStorage::class), $limits);
         });
 
-        // Log collection and processing
+        // Log collection and processing (Support layer)
         $this->app->singleton(FilePathResolver::class);
-        $this->app->singleton(LogCollector::class);
+        $this->app->singleton(SupportLogCollector::class);
         $this->app->singleton(LogProcessor::class);
         $this->app->singleton(LateLogsPersistence::class);
 
@@ -83,7 +89,40 @@ class SaciServiceProvider extends ServiceProvider
         $this->app->singleton(TemplateTracker::class);
         $this->app->singleton(DebugBarInjector::class);
         $this->app->singleton(RequestValidator::class);
-        $this->app->singleton(RequestResources::class);
+
+        // Collector Registry and Collectors
+        $this->registerCollectors();
+
+        // Backward compatibility: RequestResources → Adapter
+        $this->app->singleton(RequestResources::class, function($app) {
+            return $app->make(RequestResourcesAdapter::class);
+        });
+    }
+
+    /**
+     * Register collectors in the registry.
+     */
+    protected function registerCollectors(): void
+    {
+        $this->app->singleton(CollectorRegistry::class, function($app) {
+            $registry = new CollectorRegistry();
+
+            // Register core collectors
+            $registry->register($app->make(ViewCollector::class));
+            $registry->register($app->make(RequestCollector::class));
+            $registry->register($app->make(RouteCollector::class));
+            $registry->register($app->make(AuthCollector::class));
+            $registry->register($app->make(LogCollector::class));
+
+            return $registry;
+        });
+
+        // Register individual collectors as singletons
+        $this->app->singleton(ViewCollector::class);
+        $this->app->singleton(RequestCollector::class);
+        $this->app->singleton(RouteCollector::class);
+        $this->app->singleton(AuthCollector::class);
+        $this->app->singleton(LogCollector::class);
     }
 
     protected function registerRoutes(): void

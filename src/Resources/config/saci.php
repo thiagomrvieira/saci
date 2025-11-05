@@ -88,8 +88,25 @@ return [
     | Enable or disable view loading time tracking.
     |
     */
-    'track_performance' => env('SACI_TRACK_PERFORMANCE', true)
-    ,
+    'track_performance' => env('SACI_TRACK_PERFORMANCE', true),
+
     // Prefer internal routes for assets even if published assets exist
-    'force_internal_assets' => env('SACI_FORCE_INTERNAL_ASSETS', false)
+    'force_internal_assets' => env('SACI_FORCE_INTERNAL_ASSETS', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Collectors
+    |--------------------------------------------------------------------------
+    |
+    | Enable or disable individual data collectors.
+    | Each collector can be toggled independently for performance tuning.
+    |
+    */
+    'collectors' => [
+        'views' => env('SACI_COLLECTOR_VIEWS', true),
+        'request' => env('SACI_COLLECTOR_REQUEST', true),
+        'route' => env('SACI_COLLECTOR_ROUTE', true),
+        'auth' => env('SACI_COLLECTOR_AUTH', true),
+        'logs' => env('SACI_COLLECTOR_LOGS', true),
+    ],
 ];

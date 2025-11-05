@@ -6,42 +6,25 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use ThiagoVieira\Saci\SaciConfig;
-use ThiagoVieira\Saci\TemplateTracker;
 use ThiagoVieira\Saci\DebugBarInjector;
 use ThiagoVieira\Saci\RequestValidator;
+use ThiagoVieira\Saci\Support\CollectorRegistry;
+use ThiagoVieira\Saci\Collectors\ViewCollector;
+use ThiagoVieira\Saci\Collectors\RequestCollector;
+use ThiagoVieira\Saci\Collectors\RouteCollector;
+use ThiagoVieira\Saci\Collectors\AuthCollector;
+use ThiagoVieira\Saci\Collectors\LogCollector;
 
 class SaciMiddleware
 {
     /**
-     * Template tracker instance.
-     */
-    protected TemplateTracker $tracker;
-    protected RequestResources $resources;
-
-    /**
-     * Debug bar injector instance.
-     */
-    protected DebugBarInjector $injector;
-
-    /**
-     * Request validator instance.
-     */
-    protected RequestValidator $validator;
-
-    /**
      * Create a new middleware instance.
      */
     public function __construct(
-        TemplateTracker $tracker,
-        DebugBarInjector $injector,
-        RequestValidator $validator,
-        RequestResources $resources
-    ) {
-        $this->tracker = $tracker;
-        $this->injector = $injector;
-        $this->validator = $validator;
-        $this->resources = $resources;
-    }
+        protected CollectorRegistry $registry,
+        protected DebugBarInjector $injector,
+        protected RequestValidator $validator
+    ) {}
 
     /**
      * Handle an incoming request.
@@ -52,20 +35,26 @@ class SaciMiddleware
             return $next($request);
         }
 
-        // Ensure per-request clean state
-        if (method_exists($this->tracker, 'resetForRequest')) {
-            $this->tracker->resetForRequest();
-        }
-        $this->registerViewTracker();
-        $this->resources->start();
+        // Reset all collectors for new request
+        $this->registry->resetAll();
+
+        // Start all enabled collectors
+        $this->registry->startAll();
+
+        // Set request on collectors that need it
+        $this->setRequestOnCollectors($request);
 
         $response = $next($request);
+
         if (method_exists($this->validator, 'shouldSkipResponse') && $this->validator->shouldSkipResponse($response)) {
             return $response;
         }
-        // collect after route is resolved
-        $this->resources->collectFromRequest($request);
-        $this->resources->collectFromResponse($response);
+
+        // Set response on collectors that need it
+        $this->setResponseOnCollectors($response);
+
+        // Collect data from all collectors
+        $this->registry->collectAll();
 
         return $this->injector->inject($response);
     }
@@ -85,17 +74,46 @@ class SaciMiddleware
             return;
         }
 
-        // Process any logs that were emitted after the response was sent
-        // (e.g., from terminable middleware, shutdown handlers, queued jobs)
-        $this->resources->processLateLogsIfNeeded();
+        // Process late logs if collector exists
+        $logCollector = $this->registry->get('logs');
+        if ($logCollector instanceof LogCollector) {
+            $logCollector->processLateLogs();
+        }
     }
 
     /**
-     * Register the view tracker.
+     * Set request on collectors that need it.
      */
-    protected function registerViewTracker(): void
+    protected function setRequestOnCollectors(Request $request): void
     {
-        $this->tracker->register();
+        if ($collector = $this->registry->get('request')) {
+            if ($collector instanceof RequestCollector) {
+                $collector->setRequest($request);
+            }
+        }
+
+        if ($collector = $this->registry->get('route')) {
+            if ($collector instanceof RouteCollector) {
+                $collector->setRequest($request);
+            }
+        }
+
+        if ($collector = $this->registry->get('auth')) {
+            if ($collector instanceof AuthCollector) {
+                $collector->setRequest($request);
+            }
+        }
     }
 
+    /**
+     * Set response on collectors that need it.
+     */
+    protected function setResponseOnCollectors(SymfonyResponse $response): void
+    {
+        if ($collector = $this->registry->get('request')) {
+            if ($collector instanceof RequestCollector) {
+                $collector->setResponse($response);
+            }
+        }
+    }
 }

@@ -5,25 +5,21 @@ namespace ThiagoVieira\Saci;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Illuminate\Support\Facades\Log;
 use ThiagoVieira\Saci\SaciInfo;
+use ThiagoVieira\Saci\Support\CollectorRegistry;
+use ThiagoVieira\Saci\Collectors\ViewCollector;
+use ThiagoVieira\Saci\Collectors\RequestCollector;
+use ThiagoVieira\Saci\Collectors\RouteCollector;
+use ThiagoVieira\Saci\Collectors\AuthCollector;
+use ThiagoVieira\Saci\Collectors\LogCollector;
 
 class DebugBarInjector
 {
     /**
-     * Template tracker instance.
-     */
-    protected TemplateTracker $tracker;
-    protected RequestResources $resources;
-
-
-
-    /**
      * Create a new debug bar injector instance.
      */
-    public function __construct(TemplateTracker $tracker, RequestResources $resources)
-    {
-        $this->tracker = $tracker;
-        $this->resources = $resources;
-    }
+    public function __construct(
+        protected CollectorRegistry $registry
+    ) {}
 
     /**
      * Inject the debug bar into the response.
@@ -69,14 +65,8 @@ class DebugBarInjector
     protected function renderDebugBar(): string
     {
         try {
-            return view('saci::bar', [
-                'requestId' => method_exists($this->tracker, 'getRequestId') ? $this->tracker->getRequestId() : null,
-                'templates' => $this->tracker->getTemplates(),
-                'total' => $this->tracker->getTotal(),
-                'version' => SaciInfo::getVersion(),
-                'author' => SaciInfo::getAuthor(),
-                'resources' => $this->resources->getData(),
-            ])->render();
+            $viewData = $this->prepareViewData();
+            return view('saci::bar', $viewData)->render();
         } catch (\Exception $e) {
             Log::error('Saci view error: ' . $e->getMessage());
 
@@ -84,5 +74,42 @@ class DebugBarInjector
         }
     }
 
+    /**
+     * Prepare view data from collectors.
+     *
+     * Formats data to maintain backward compatibility with existing views.
+     */
+    protected function prepareViewData(): array
+    {
+        $viewCollector = $this->registry->get('views');
+        $requestCollector = $this->registry->get('request');
+        $routeCollector = $this->registry->get('route');
+        $authCollector = $this->registry->get('auth');
+        $logCollector = $this->registry->get('logs');
 
+        // Extract data from collectors
+        $viewData = $viewCollector instanceof ViewCollector ? $viewCollector->getData() : [];
+        $requestData = $requestCollector instanceof RequestCollector ? $requestCollector->getData() : [];
+        $routeData = $routeCollector instanceof RouteCollector ? $routeCollector->getData() : [];
+        $authData = $authCollector instanceof AuthCollector ? $authCollector->getData() : [];
+        $logData = $logCollector instanceof LogCollector ? $logCollector->getData() : [];
+
+        // Combine into resources structure (backward compatible)
+        $resources = [
+            'request' => $requestData['request'] ?? [],
+            'response' => $requestData['response'] ?? [],
+            'route' => $routeData,
+            'auth' => $authData,
+            'logs' => $logData['logs'] ?? [],
+        ];
+
+        return [
+            'requestId' => $viewData['request_id'] ?? null,
+            'templates' => $viewData['templates'] ?? [],
+            'total' => $viewData['total'] ?? 0,
+            'version' => SaciInfo::getVersion(),
+            'author' => SaciInfo::getAuthor(),
+            'resources' => $resources,
+        ];
+    }
 }
