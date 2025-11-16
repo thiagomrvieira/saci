@@ -137,3 +137,43 @@ SACI_COLLECTOR_DATABASE=true   # Enable/disable database collector (default: tru
 - Provides actionable insights with code locations for easy debugging
 - Integrates seamlessly with existing Saci UI and themes
 
+## [2.4.1] - 2025-11-16
+### Fixed
+- **CSS Isolation**: Prevent client app styles from affecting Saci dump containers
+  - Variable dumps in Views tab now fully isolated (no white borders/backgrounds)
+  - Query bindings in Database tab fully protected
+  - Inline dumps in Logs tab fully protected
+  - All dumps use `!important` rules for background, border, and box-shadow
+  
+### Documentation
+- **Support Layer**: Complete documentation for all 8 support components
+  - DumpManager: Symfony VarDumper integration details
+  - DumpStorage: File-based storage, caps, TTL
+  - LogProcessor: Log formatting and previews
+  - LateLogsPersistence: Post-response log collection
+  - CollectorRegistry: Dynamic collector management
+  - FilePathResolver: Path normalization
+  - PerformanceFormatter: Metrics formatting
+  - Support\LogCollector: Low-level Monolog handler
+- **HTTP Layer**: Documentation for controllers and routes
+  - AssetsController: Zero-config asset serving with cache headers
+  - DumpController: Lazy-loaded dumps and late logs via AJAX
+- **Configuration**: Added missing ENV variables to README
+  - SACI_PREVIEW_MAX_ITEMS, SACI_PREVIEW_MAX_STRING, SACI_DUMP_MAX_DEPTH
+  - SACI_CSP_NONCE, SACI_FORCE_INTERNAL_ASSETS
+  - New "Advanced Configuration" section with use cases
+
+### Technical Details
+Protected CSS classes:
+- `.saci-dump`, `.saci-dump-content`, `.saci-dump-inline`
+- `.saci-value-row td`, `.saci-preview`
+- `.sf-dump` (Symfony VarDumper output)
+- `.saci-query-bindings`, `.saci-query-bindings pre/strong`
+- `.saci-n1-example .saci-bindings`
+- `.saci-btn-toggle-bindings`
+
+Documentation Coverage: 100%
+- 10 new/updated component documentations
+- 7 new ENV variables documented
+- 2 new architecture sections (Support Layer, HTTP Layer)
+
