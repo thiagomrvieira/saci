@@ -68,9 +68,17 @@ SACI_ALLOW_IPS=127.0.0.1,::1         # IP whitelist (empty = everyone)
 ### Data Collection Limits
 
 ```env
-SACI_PREVIEW_MAX_CHARS=70            # How long previews should be
+# Preview Limits (shown inline before expanding)
+SACI_PREVIEW_MAX_CHARS=70            # Max preview text length
+SACI_PREVIEW_MAX_ITEMS=8             # Max array items in preview
+SACI_PREVIEW_MAX_STRING=80           # Max string length in preview
+
+# Full Dump Limits (lazy-loaded on click)
+SACI_DUMP_MAX_DEPTH=5                # Max nesting depth for dumps
 SACI_DUMP_MAX_ITEMS=10000            # Max array/object items to dump
 SACI_DUMP_MAX_STRING=10000           # Max string length in dumps
+
+# Storage Management
 SACI_PER_REQUEST_BYTES=1048576       # Max storage per request (1MB)
 SACI_DUMP_TTL=60                     # Auto-cleanup old dumps (seconds)
 ```
@@ -89,6 +97,23 @@ SACI_COLLECTOR_AUTH=true             # Authentication data
 SACI_COLLECTOR_LOGS=true             # Application logs
 SACI_COLLECTOR_DATABASE=true         # SQL query tracking + N+1 detection
 ```
+
+### Advanced Configuration
+
+For edge cases and special requirements:
+
+```env
+# Content Security Policy (CSP)
+SACI_CSP_NONCE=your-nonce-here       # Add CSP nonce to inline scripts (if using strict CSP)
+
+# Asset Serving
+SACI_FORCE_INTERNAL_ASSETS=false     # Force internal asset routes even if published
+                                     # (useful for Docker/containerized environments)
+```
+
+**When to use these:**
+- `SACI_CSP_NONCE`: If your app has a strict Content Security Policy that blocks inline scripts
+- `SACI_FORCE_INTERNAL_ASSETS`: When published assets don't match package version (cache issues, container deployments)
 
 #### Real-World Examples
 

@@ -41,6 +41,83 @@ Saci follows Laravel's best practices and modern PHP patterns, implementing a cl
 
 ## Core Components
 
+### Support Layer
+
+The Support Layer provides utilities and services that power the collectors and core functionality.
+
+#### **DumpManager**
+- **Responsibility**: Variable dumping and formatting using Symfony VarDumper
+- **Features**:
+  - HTML dump generation for web display
+  - CLI dump generation for terminal output
+  - Preview generation with size limits
+  - Configurable max depth, items, and string length
+  - Lazy loading support (generates dump ID, stores HTML)
+- **Dependencies**: DumpStorage, VarCloner, HtmlDumper
+
+#### **DumpStorage**
+- **Responsibility**: Persistent storage for variable dumps
+- **Features**:
+  - File-based storage in `storage/app/saci/dumps/{requestId}/`
+  - Per-request byte caps (default: 1MB) to prevent memory issues
+  - Automatic cleanup of old dumps (TTL-based, default: 60s)
+  - UUID-based request IDs and random dump IDs
+  - Late logs storage support
+- **Configuration**: `SACI_PER_REQUEST_BYTES`, `SACI_DUMP_TTL`
+
+#### **LogProcessor**
+- **Responsibility**: Process and format log entries for display
+- **Features**:
+  - Extracts log level, message, and context
+  - Formats timestamps
+  - Generates log previews
+  - Handles structured context data
+  - Integration with DumpManager for context dumps
+
+#### **LateLogsPersistence**
+- **Responsibility**: Persist logs collected after response is sent
+- **Features**:
+  - Stores logs from terminable middleware
+  - Stores logs from shutdown handlers
+  - JSON-based storage using DumpStorage
+  - AJAX retrieval endpoint support
+- **Use Case**: Captures logs that occur after the HTTP response is sent to the client
+
+#### **CollectorRegistry**
+- **Responsibility**: Central registry for all collectors
+- **Features**:
+  - Register collectors dynamically
+  - Get collector by name
+  - Start/collect/reset all enabled collectors
+  - Filter collectors based on configuration
+  - Aggregate data from all collectors
+- **Dependencies**: All collector instances
+
+#### **FilePathResolver**
+- **Responsibility**: Resolve and normalize file paths for display
+- **Features**:
+  - Shortens absolute paths to relative paths
+  - Removes project root from paths
+  - Handles vendor paths
+  - Cross-platform path normalization
+
+#### **PerformanceFormatter**
+- **Responsibility**: Format performance metrics for display
+- **Features**:
+  - Time formatting (ms, s)
+  - Memory formatting (B, KB, MB, GB)
+  - Threshold-based color coding
+  - Human-readable output
+
+#### **Support\LogCollector**
+- **Responsibility**: Low-level log collection from Monolog
+- **Features**:
+  - Monolog handler implementation
+  - Collects logs during request lifecycle
+  - Collects late logs (after response)
+  - Thread-safe log storage
+- **Note**: Different from `Collectors\LogCollector` which is the high-level collector interface
+
 ### Orchestration Layer
 
 #### **SaciServiceProvider**
@@ -158,6 +235,33 @@ Saci follows Laravel's best practices and modern PHP patterns, implementing a cl
   - Binding resolution and formatting
 - **Data**: Query list, execution times, connections, slow queries, duplicates, N+1 patterns
 - **Dependencies**: Laravel's QueryExecuted event listener
+
+### HTTP Layer
+
+#### **AssetsController**
+- **Responsibility**: Serve Saci's CSS and JS assets without requiring publish
+- **Features**:
+  - Serves minified assets in production (`saci.min.css`, `saci.min.js`)
+  - Serves unminified assets in debug mode
+  - Strong cache headers (1 year) with immutable flag
+  - Version-based cache busting via query string
+  - Security headers (`X-Content-Type-Options: nosniff`)
+  - IP allowlist and enabled check via RequestValidator
+- **Routes**: `/__saci/assets/css`, `/__saci/assets/js`
+
+#### **DumpController**
+- **Responsibility**: Serve lazy-loaded dumps and late logs via AJAX
+- **Features**:
+  - Serves individual dumps by request ID and dump ID
+  - Serves late logs (from terminable middleware, shutdown handlers)
+  - JSON response for late logs
+  - HTML response for dumps
+  - No-cache headers (always fresh)
+  - Security: IP allowlist and enabled check
+- **Routes**:
+  - `/__saci/dump/{requestId}/{dumpId}` - Single dump
+  - `/__saci/late-logs/{requestId}` - Late logs collection
+- **Dependencies**: DumpStorage, LateLogsPersistence, RequestValidator
 
 ### Legacy Adapters
 
