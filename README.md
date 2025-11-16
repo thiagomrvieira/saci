@@ -26,7 +26,7 @@ php artisan vendor:publish --tag=saci-assets
 
 ## What's in the Box? 📦
 
-### 5 Powerful Data Collectors
+### 6 Powerful Data Collectors
 
 Each one is like a little spy that watches different parts of your app:
 
@@ -35,6 +35,7 @@ Each one is like a little spy that watches different parts of your app:
 - 🛣️ **Route**: Controller info, middleware stack, parameters, constraints
 - 👤 **Auth**: Who's logged in? Which guard? User details
 - 📝 **Logs**: All your `Log::info()`, `Log::error()`, etc. in one place
+- 🗄️ **Database**: SQL queries with bindings, execution time, **N+1 detection**, duplicate finder, stack traces
 
 ### UI That Doesn't Suck
 
@@ -86,6 +87,7 @@ SACI_COLLECTOR_REQUEST=true          # HTTP request/response
 SACI_COLLECTOR_ROUTE=true            # Route & controller info
 SACI_COLLECTOR_AUTH=true             # Authentication data
 SACI_COLLECTOR_LOGS=true             # Application logs
+SACI_COLLECTOR_DATABASE=true         # SQL query tracking + N+1 detection
 ```
 
 #### Real-World Examples
@@ -114,6 +116,52 @@ SACI_COLLECTOR_ROUTE=true            # Just this one, please
 **Performance impact:**
 - ❌ Disabled = Zero overhead (literally not even loaded)
 - ✅ Enabled = Minimal overhead (smart, optimized collection)
+
+## Database Tab 🗄️ - The Performance Detective
+
+The Database collector is your first line of defense against slow queries and N+1 nightmares. It automatically watches every SQL query your app executes and gives you insights that would take hours to debug manually.
+
+### What You Get
+
+- **All Queries Listed**: Every single SQL statement, with bindings resolved
+- **Execution Time**: See exactly how long each query took (slow queries > 100ms highlighted in orange)
+- **N+1 Detection**: Automatically spots N+1 patterns (like running `SELECT * FROM users WHERE id = ?` 50 times)
+- **Duplicate Finder**: Identifies queries that run multiple times (candidates for caching)
+- **Stack Traces**: Click any query to see exactly where in your code it was called
+- **Smart Filters**: Search queries, show only slow ones, filter by type (SELECT, INSERT, etc.)
+
+### Real-World Example
+
+Say you're loading a list of blog posts with their authors:
+
+```php
+$posts = Post::all();
+foreach ($posts as $post) {
+    echo $post->author->name; // 💀 N+1 ALERT!
+}
+```
+
+**Without Saci:** "Hmm, this page is slow. Wonder why? 🤔"
+
+**With Saci Database Tab:**
+```
+⚠️ N+1 Queries Detected!
+Pattern: SELECT * FROM users WHERE id = ?
+Executed 47× (234ms total)
+```
+
+**Fix it:**
+```php
+$posts = Post::with('author')->all(); // Eager load, 2 queries total 🚀
+```
+
+### Use Cases
+
+- **Find slow queries**: Sort by time, identify bottlenecks
+- **Optimize N+1**: The tab literally tells you "hey, this is an N+1"
+- **Reduce redundant queries**: See duplicates, add caching
+- **Debug ORM issues**: See the actual SQL your Eloquent code generates
+- **Production monitoring**: Keep it on in staging to catch issues before prod
 
 ### Memory Management
 

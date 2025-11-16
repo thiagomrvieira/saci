@@ -19,6 +19,7 @@ use ThiagoVieira\Saci\Collectors\RequestCollector;
 use ThiagoVieira\Saci\Collectors\RouteCollector;
 use ThiagoVieira\Saci\Collectors\AuthCollector;
 use ThiagoVieira\Saci\Collectors\LogCollector;
+use ThiagoVieira\Saci\Collectors\DatabaseCollector;
 
 class SaciServiceProvider extends ServiceProvider
 {
@@ -113,6 +114,7 @@ class SaciServiceProvider extends ServiceProvider
             $registry->register($app->make(RouteCollector::class));
             $registry->register($app->make(AuthCollector::class));
             $registry->register($app->make(LogCollector::class));
+            $registry->register($app->make(DatabaseCollector::class));
 
             return $registry;
         });
@@ -123,6 +125,7 @@ class SaciServiceProvider extends ServiceProvider
         $this->app->singleton(RouteCollector::class);
         $this->app->singleton(AuthCollector::class);
         $this->app->singleton(LogCollector::class);
+        $this->app->singleton(DatabaseCollector::class);
     }
 
     protected function registerRoutes(): void

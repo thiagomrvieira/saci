@@ -33,6 +33,13 @@
     $method = $resources['request']['method'] ?? null;
     $uri = $resources['route']['uri'] ?? null;
     $logsCount = count($resources['logs'] ?? []);
+
+    // Database stats
+    $databaseData = $resources['database'] ?? [];
+    $dbCount = $databaseData['total_queries'] ?? 0;
+    $dbTime = $databaseData['total_time'] ?? 0;
+    $dbN1Count = count($databaseData['possible_n_plus_one'] ?? []);
+
     if ($trackPerf) {
         $requestDurationMs = (isset($resources['response']['duration_ms']) && is_numeric($resources['response']['duration_ms']))
             ? (float) $resources['response']['duration_ms']
@@ -56,6 +63,9 @@
     data-method="{{ $method }}"
     data-uri="{{ $uri }}"
     data-logs-count="{{ $logsCount }}"
+    data-db-count="{{ $dbCount }}"
+    data-db-time="{{ $dbTime }}"
+    data-db-n1="{{ $dbN1Count }}"
 >
     @include('saci::partials.header', [
         'version' => $version,
@@ -67,6 +77,7 @@
         'uri' => $uri,
         'requestMeta' => $requestMeta,
         'logs' => ($resources['logs'] ?? []),
+        'resources' => $resources,
     ])
 
     <div
@@ -89,11 +100,20 @@
                 'key' => 'request-route',
                 'title' => '',
                 'open' => true,
-                'content' => view('saci::partials._request-route', ['route' => $route, 'requestId' => ($requestId ?? null)])->render(),
+                'content' => view(
+                    'saci::partials._request-route',
+                    ['route' => $route, 'requestId' => ($requestId ?? null)]
+                )->render(),
             ])
         </div>
         <div id="saci-tabpanel-logs" class="saci-panel" role="tabpanel" aria-labelledby="saci-tab-logs" style="display: none;">
             @include('saci::partials.logs', ['logs' => ($resources['logs'] ?? []), 'requestId' => ($requestId ?? null)])
+        </div>
+        <div id="saci-tabpanel-database" class="saci-panel" role="tabpanel" aria-labelledby="saci-tab-database" style="display: none;">
+            @include('saci::partials.database', [
+                'resources' => $resources ?? [],
+                'requestId' => ($requestId ?? null)
+            ])
         </div>
     </div>
 </div>

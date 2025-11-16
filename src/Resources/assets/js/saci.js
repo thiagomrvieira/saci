@@ -587,6 +587,179 @@
         }
     };
 
+    /**
+     * Database Filtering Module
+     * Handles filtering of database queries with search, slow queries, and query type filters.
+     */
+    const databaseFilters = {
+        // DOM elements
+        searchInput: null,
+        clearBtn: null,
+        slowOnlyCheckbox: null,
+        selectOnlyCheckbox: null,
+        statsText: null,
+        dbRows: null,
+
+        /** Initialize database filtering functionality. */
+        init() {
+            // Cache DOM elements
+            Object.assign(this, {
+                searchInput: document.getElementById('saci-db-search'),
+                clearBtn: document.getElementById('saci-db-search-clear'),
+                slowOnlyCheckbox: document.getElementById('saci-db-slow-only'),
+                selectOnlyCheckbox: document.getElementById('saci-db-select-only'),
+                statsText: document.getElementById('saci-db-stats-text')
+            });
+
+            // Early return if essential elements missing
+            if (!this.searchInput) return;
+
+            const dbTable = document.querySelector('.saci-table-database tbody');
+            if (!dbTable) return;
+
+            this.dbRows = dbTable.querySelectorAll('tr[data-saci-db-key]');
+
+            this.attachEventListeners();
+            this.attachBindingToggles();
+            this.attachN1Expanders();
+            this.applyFilters();
+        },
+
+        /** Attach event listeners. */
+        attachEventListeners() {
+            const onFilterChange = () => this.applyFilters();
+
+            // Search with clear button
+            this.searchInput?.addEventListener('input', () => {
+                onFilterChange();
+                this.updateClearButton();
+            });
+
+            this.clearBtn?.addEventListener('click', () => {
+                this.searchInput.value = '';
+                onFilterChange();
+                this.updateClearButton();
+                this.searchInput.focus();
+            });
+
+            // Filter checkboxes
+            this.slowOnlyCheckbox?.addEventListener('change', onFilterChange);
+            this.selectOnlyCheckbox?.addEventListener('change', onFilterChange);
+        },
+
+        /** Attach binding toggle buttons. */
+        attachBindingToggles() {
+            document.querySelectorAll('.saci-btn-toggle-bindings').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const queryId = btn.getAttribute('data-query-id');
+                    const bindingsDiv = document.querySelector(`.saci-query-bindings[data-query-id="${queryId}"]`);
+                    const closedSpan = btn.querySelector('.saci-bindings-closed');
+                    const openSpan = btn.querySelector('.saci-bindings-open');
+
+                    if (bindingsDiv) {
+                        bindingsDiv.classList.toggle('saci-hidden');
+                        closedSpan?.classList.toggle('saci-hidden');
+                        openSpan?.classList.toggle('saci-hidden');
+                    }
+                });
+            });
+        },
+
+        /** Attach N+1 pattern expanders. */
+        attachN1Expanders() {
+            document.querySelectorAll('.saci-btn-expand-n1').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const patternId = btn.getAttribute('data-pattern-id');
+                    const examplesDiv = document.querySelector(`.saci-n1-examples[data-pattern-id="${patternId}"]`);
+
+                    if (examplesDiv) {
+                        examplesDiv.classList.toggle('saci-hidden');
+                        btn.textContent = examplesDiv.classList.contains('saci-hidden')
+                            ? 'Show examples'
+                            : 'Hide examples';
+                    }
+                });
+            });
+        },
+
+        /** Apply all active filters to database rows. */
+        applyFilters() {
+            if (!this.dbRows) return;
+
+            const filters = {
+                searchText: this.searchInput?.value.trim().toLowerCase() || '',
+                slowOnly: this.slowOnlyCheckbox?.checked || false,
+                selectOnly: this.selectOnlyCheckbox?.checked || false
+            };
+
+            let visibleCount = 0;
+            this.dbRows.forEach(row => {
+                const shouldShow = this.shouldShowRow(row, filters);
+                if (shouldShow) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            this.updateStats(visibleCount, this.dbRows.length);
+        },
+
+        /**
+         * Determine if a row should be visible based on filters.
+         * @param {HTMLTableRowElement} row
+         * @param {{searchText:string, slowOnly:boolean, selectOnly:boolean}} filters
+         * @returns {boolean}
+         */
+        shouldShowRow(row, { searchText, slowOnly, selectOnly }) {
+            // Slow queries filter
+            if (slowOnly && !row.hasAttribute('data-is-slow')) {
+                return false;
+            }
+
+            // SELECT only filter
+            if (selectOnly) {
+                const queryType = row.getAttribute('data-query-type');
+                if (queryType !== 'select') {
+                    return false;
+                }
+            }
+
+            // Search filter
+            if (searchText) {
+                const queryText = row.querySelector('.saci-query-sql')?.textContent.toLowerCase() || '';
+                const callerText = row.querySelector('.saci-caller-info')?.textContent.toLowerCase() || '';
+                const searchableText = `${queryText} ${callerText}`;
+
+                if (!searchableText.includes(searchText)) {
+                    return false;
+                }
+            }
+
+            return true;
+        },
+
+        /** Update the stats display. */
+        updateStats(visible, total) {
+            if (this.statsText) {
+                this.statsText.textContent = visible === total
+                    ? `Showing ${total} ${total === 1 ? 'query' : 'queries'}`
+                    : `Showing ${visible} of ${total} ${total === 1 ? 'query' : 'queries'}`;
+            }
+        },
+
+        /** Update the clear button visibility. */
+        updateClearButton() {
+            if (this.clearBtn) {
+                const hasValue = this.searchInput && this.searchInput.value.trim().length > 0;
+                this.clearBtn.classList.toggle('saci-hidden', !hasValue);
+            }
+        }
+    };
+
     /** Component factory for the Saci bar (reused by vanilla init). @returns {object} */
     window.saciBar = function() {
         return {
@@ -1323,6 +1496,10 @@
                     // Use setTimeout to ensure DOM is ready
                     setTimeout(() => logFilters.init(), 0);
                 }
+                // Initialize database filters when database tab is opened
+                if (name === 'database') {
+                    setTimeout(() => databaseFilters.init(), 0);
+                }
                 // Ensure selected panel is un-cloaked
                 const current = name === 'views'
                   ? root.querySelector('#saci-tabpanel-views')
@@ -1330,7 +1507,11 @@
                     ? root.querySelector('#saci-tabpanel-request')
                     : name === 'route'
                       ? root.querySelector('#saci-tabpanel-route')
-                      : root.querySelector('#saci-tabpanel-logs');
+                      : name === 'logs'
+                        ? root.querySelector('#saci-tabpanel-logs')
+                        : name === 'database'
+                          ? root.querySelector('#saci-tabpanel-database')
+                          : root.querySelector('#saci-tabpanel-views');
                 // Alpine.js no longer used
             };
             const togglePanels = () => {
@@ -1338,7 +1519,8 @@
                     views: root.querySelector('#saci-tabpanel-views'),
                     resources: root.querySelector('#saci-tabpanel-request'),
                     route: root.querySelector('#saci-tabpanel-route'),
-                    logs: root.querySelector('#saci-tabpanel-logs')
+                    logs: root.querySelector('#saci-tabpanel-logs'),
+                    database: root.querySelector('#saci-tabpanel-database')
                 };
 
                 // Check if user prefers reduced motion
@@ -1395,7 +1577,8 @@
                         (id === 'saci-tab-views' && state.tab === 'views') ||
                         (id === 'saci-tab-request' && state.tab === 'resources') ||
                         (id === 'saci-tab-route' && state.tab === 'route') ||
-                        (id === 'saci-tab-logs' && state.tab === 'logs');
+                        (id === 'saci-tab-logs' && state.tab === 'logs') ||
+                        (id === 'saci-tab-database' && state.tab === 'database');
                     btn.classList.toggle('saci-tab--active', !!isActive);
                     btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
                 });
@@ -1422,7 +1605,11 @@
                         ? root.querySelector('#saci-tabpanel-request')
                         : state.tab === 'route'
                           ? root.querySelector('#saci-tabpanel-route')
-                          : root.querySelector('#saci-tabpanel-logs');
+                          : state.tab === 'logs'
+                            ? root.querySelector('#saci-tabpanel-logs')
+                            : state.tab === 'database'
+                              ? root.querySelector('#saci-tabpanel-database')
+                              : root.querySelector('#saci-tabpanel-views');
                     // Alpine.js no longer used
                 }
             };
@@ -1443,6 +1630,7 @@
                 ['saci-tab-request', 'resources'],
                 ['saci-tab-route', 'route'],
                 ['saci-tab-logs', 'logs'],
+                ['saci-tab-database', 'database'],
             ];
             map.forEach(([id, name]) => {
                 const el = root.querySelector('#' + id);
@@ -1618,13 +1806,16 @@
                 ? root.querySelector('#saci-tabpanel-request')
                 : state.tab === 'route'
                   ? root.querySelector('#saci-tabpanel-route')
-                  : root.querySelector('#saci-tabpanel-logs');
+                  : state.tab === 'logs'
+                    ? root.querySelector('#saci-tabpanel-logs')
+                    : state.tab === 'database'
+                      ? root.querySelector('#saci-tabpanel-database')
+                      : root.querySelector('#saci-tabpanel-views');
             // Ensure initial panel has active class (no animation on first load)
             if (initialPanel) {
                 initialPanel.classList.remove('saci-panel-enter', 'saci-panel-exit');
                 initialPanel.classList.add('saci-panel-active');
             }
-            // Alpine.js no longer used
 
             // Header summaries (views/request) in vanilla mode
             const viewsDisplay = (root.getAttribute('data-views-display') || '');
@@ -1637,6 +1828,19 @@
             const methodStr = (root.getAttribute('data-method') || '').trim();
             const uriStr = (root.getAttribute('data-uri') || '').trim();
             const logsCount = (root.getAttribute('data-logs-count') || '0');
+            const dbCount = (root.getAttribute('data-db-count') || '0');
+            const dbTime = (root.getAttribute('data-db-time') || '0');
+            const dbN1 = (root.getAttribute('data-db-n1') || '0');
+
+            // Helper to format time with unit
+            const formatTime = (ms) => {
+                const timeMs = parseFloat(ms);
+                if (timeMs >= 1000) {
+                    return (timeMs / 1000).toFixed(2) + 's';
+                }
+                return timeMs.toFixed(2) + 'ms';
+            };
+
             const controls = root.querySelector('#saci-controls');
             const renderHeaderSummary = () => {
                 if (!controls) return;
@@ -1657,6 +1861,18 @@
                         const logsLabel = (parseInt(logsCount) === 1) ? 'log' : 'logs';
                         right.innerHTML = '<div class="saci-summary" style="margin:0;"><div class="saci-summary-right">' +
                           '<strong>' + logsCount + '</strong> ' + logsLabel + ' collected</div></div>';
+                    } else if (state.tab === 'database') {
+                        const dbLabel = (parseInt(dbCount) === 1) ? 'query' : 'queries';
+                        let html = '<div class="saci-summary" style="margin:0;"><div class="saci-summary-right">';
+                        html += '<strong>' + dbCount + '</strong> ' + dbLabel;
+                        if (parseInt(dbCount) > 0) {
+                            html += ' in <strong>' + formatTime(dbTime) + '</strong>';
+                        }
+                        if (parseInt(dbN1) > 0) {
+                            html += ' <span class="saci-badge saci-badge-danger">' + dbN1 + ' N+1</span>';
+                        }
+                        html += '</div></div>';
+                        right.innerHTML = html;
                     } else {
                         right.innerHTML = '';
                     }
@@ -1671,6 +1887,16 @@
                     } else if (state.tab === 'logs') {
                         const logsLabel = (parseInt(logsCount) === 1) ? 'log' : 'logs';
                         version.innerHTML = '<strong>' + logsCount + '</strong> ' + logsLabel;
+                    } else if (state.tab === 'database') {
+                        const dbLabel = (parseInt(dbCount) === 1) ? 'query' : 'queries';
+                        let html = '<strong>' + dbCount + '</strong> ' + dbLabel;
+                        if (parseInt(dbCount) > 0) {
+                            html += ' in <strong>' + formatTime(dbTime) + '</strong>';
+                        }
+                        if (parseInt(dbN1) > 0) {
+                            html += ' <span class="saci-badge saci-badge-danger">' + dbN1 + ' N+1</span>';
+                        }
+                        version.innerHTML = html;
                     } else {
                         version.innerHTML = '';
                     }
@@ -1750,6 +1976,10 @@
             // Initialize log filters if logs tab is initially selected
             if (state.tab === 'logs') {
                 setTimeout(() => logFilters.init(), 0);
+            }
+            // Initialize database filters if database tab is initially selected
+            if (state.tab === 'database') {
+                setTimeout(() => databaseFilters.init(), 0);
             }
 
             // Vanilla tooltips

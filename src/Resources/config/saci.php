@@ -108,5 +108,6 @@ return [
         'route' => env('SACI_COLLECTOR_ROUTE', true),
         'auth' => env('SACI_COLLECTOR_AUTH', true),
         'logs' => env('SACI_COLLECTOR_LOGS', true),
+        'database' => env('SACI_COLLECTOR_DATABASE', true),
     ],
 ];

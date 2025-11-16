@@ -11,6 +11,7 @@ use ThiagoVieira\Saci\Collectors\RequestCollector;
 use ThiagoVieira\Saci\Collectors\RouteCollector;
 use ThiagoVieira\Saci\Collectors\AuthCollector;
 use ThiagoVieira\Saci\Collectors\LogCollector;
+use ThiagoVieira\Saci\Collectors\DatabaseCollector;
 
 class DebugBarInjector
 {
@@ -86,6 +87,7 @@ class DebugBarInjector
         $routeCollector = $this->registry->get('route');
         $authCollector = $this->registry->get('auth');
         $logCollector = $this->registry->get('logs');
+        $databaseCollector = $this->registry->get('database');
 
         // Extract data from collectors
         $viewData = $viewCollector instanceof ViewCollector ? $viewCollector->getData() : [];
@@ -93,6 +95,7 @@ class DebugBarInjector
         $routeData = $routeCollector instanceof RouteCollector ? $routeCollector->getData() : [];
         $authData = $authCollector instanceof AuthCollector ? $authCollector->getData() : [];
         $logData = $logCollector instanceof LogCollector ? $logCollector->getData() : [];
+        $databaseData = $databaseCollector instanceof DatabaseCollector ? $databaseCollector->getData() : [];
 
         // Combine into resources structure (backward compatible)
         $resources = [
@@ -101,6 +104,7 @@ class DebugBarInjector
             'route' => $routeData,
             'auth' => $authData,
             'logs' => $logData['logs'] ?? [],
+            'database' => $databaseData,
         ];
 
         return [

@@ -934,3 +934,385 @@ th.saci-col-level { text-align: left; }
     }
 }
 
+/* =====================================================
+   DATABASE TAB STYLES
+   ===================================================== */
+
+/* Alerts */
+.saci-alert {
+    padding: 10px 12px;
+    margin: 8px 0;
+    border-radius: 3px;
+    border-left: 3px solid;
+    font-size: 0.9rem;
+}
+
+.saci-alert-danger {
+    background: rgba(239, 68, 68, 0.08);
+    border-left-color: #ef4444;
+    color: #dc3545;
+}
+
+.saci-alert-warning {
+    background: rgba(239, 68, 68, 0.06);
+    border-left-color: #fc8181;
+    color: #ef4444;
+}
+
+/* Compact alert variant (40% smaller) */
+.saci-alert-compact {
+    padding: 5px 8px;
+    margin: 4px 0;
+    font-size: 0.8rem;
+}
+
+.saci-alert-compact strong {
+    font-size: 0.8rem;
+    display: inline;
+    margin-right: 4px;
+}
+
+.saci-alert-compact span,
+.saci-alert-compact p {
+    display: inline;
+    margin: 0;
+    font-size: 0.8rem;
+}
+
+#saci.saci-theme-dark .saci-alert-danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #fca5a5;
+}
+
+#saci.saci-theme-dark .saci-alert-warning {
+    background: rgba(239, 68, 68, 0.08);
+    color: #fca5a5;
+}
+
+/* N+1 Summary */
+.saci-n1-summary {
+    margin-top: 6px;
+}
+
+.saci-n1-item {
+    margin-top: 6px;
+    padding: 6px 8px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+    font-size: 0.9rem;
+}
+
+#saci.saci-theme-dark .saci-n1-item {
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.saci-n1-pattern {
+    display: block;
+    font-size: 0.85rem;
+    padding: 3px 6px;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 2px;
+    margin-bottom: 4px;
+    font-family: 'Courier New', monospace;
+}
+
+#saci.saci-theme-dark .saci-n1-pattern {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.saci-n1-count {
+    font-size: 0.85rem;
+    color: var(--saci-text-muted);
+}
+
+.saci-btn-expand-n1 {
+    margin-left: 8px;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    background: var(--saci-bg);
+    border: 1px solid var(--saci-border);
+    border-radius: 2px;
+    cursor: pointer;
+    color: var(--saci-text);
+}
+
+.saci-btn-expand-n1:hover {
+    background: var(--saci-bg-hover);
+}
+
+.saci-n1-examples {
+    margin-top: 6px;
+    padding-left: 12px;
+}
+
+.saci-n1-example {
+    margin-top: 4px;
+    padding: 4px 6px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 2px;
+    font-size: 0.85rem;
+}
+
+#saci.saci-theme-dark .saci-n1-example {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.saci-n1-example code {
+    display: block;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+}
+
+.saci-n1-example .saci-bindings {
+    margin-top: 3px;
+    font-size: 0.75rem;
+    color: var(--saci-text-muted);
+}
+
+/* Database Filters */
+.saci-db-filters {
+    padding: 8px 0;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--saci-border);
+}
+
+.saci-filter-row {
+    margin-bottom: 8px;
+}
+
+/* Database Table */
+.saci-table-database {
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+/* Prevent external CSS conflicts - force transparent backgrounds and visibility */
+#saci .saci-table-database thead th,
+#saci .saci-table-database tbody td,
+#saci .saci-table-database tbody tr,
+#saci .saci-table-database code,
+#saci .saci-table-database pre,
+#saci .saci-query-bindings,
+#saci .saci-query-bindings pre,
+#saci .saci-query-bindings strong {
+    background: transparent !important;
+}
+
+/* Force visibility for bindings content */
+#saci .saci-query-bindings pre {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.saci-table-database thead th {
+    padding: 8px !important;
+    font-weight: 600;
+    text-align: left;
+    border-bottom: 1px solid var(--saci-border);
+}
+
+.saci-table-database tbody td {
+    padding: 8px !important;
+    border-bottom: 1px solid var(--saci-border);
+    vertical-align: top;
+    background: transparent !important;
+}
+
+.saci-table-database .saci-col-db-index {
+    width: 9px;
+    text-align: center;
+    color: var(--saci-text-muted);
+    background: transparent !important;
+    font-size: 0.75rem;
+    padding: 8px 4px !important;
+}
+
+.saci-table-database .saci-col-db-time {
+    width: 20px;
+    text-align: right;
+    background: transparent !important;
+    white-space: nowrap;
+    padding-right: 8px !important;
+    font-size: 0.8rem;
+}
+
+.saci-table-database .saci-col-db-query {
+    width: 56%;
+    background: transparent !important;
+}
+
+.saci-table-database .saci-col-db-caller {
+    width: 120px;
+    max-width: 120px;
+    font-size: 0.85rem;
+    background: transparent !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.saci-db-row-slow {
+    background: rgba(239, 68, 68, 0.04) !important;
+}
+
+.saci-db-row-slow td {
+    background: transparent !important;
+}
+
+#saci.saci-theme-dark .saci-db-row-slow {
+    background: rgba(239, 68, 68, 0.06) !important;
+}
+
+.saci-db-time {
+    font-weight: 500;
+}
+
+.saci-db-time-slow {
+    color: #ef4444;
+    font-weight: 700;
+}
+
+/* Query Display */
+.saci-query-wrapper {
+    font-family: 'Courier New', monospace;
+    background: transparent !important;
+}
+
+.saci-query-sql {
+    display: block;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--saci-text);
+    word-break: break-all;
+    background: transparent !important;
+}
+
+.saci-btn-toggle-bindings {
+    margin-top: 4px;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    background: var(--saci-bg);
+    border: 1px solid var(--saci-border);
+    border-radius: 2px;
+    cursor: pointer;
+    color: var(--saci-text);
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.saci-btn-toggle-bindings:hover {
+    background: var(--saci-bg-hover);
+}
+
+.saci-query-bindings {
+    margin-top: 4px;
+    padding: 6px 8px;
+    background: var(--saci-bg-subtle) !important;
+    border-radius: 2px;
+    font-size: 0.8rem;
+}
+
+.saci-query-bindings strong {
+    display: inline !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.saci-query-bindings pre {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-family: 'Courier New', monospace !important;
+    white-space: pre-wrap !important;
+    word-break: break-all !important;
+    background: transparent !important;
+    color: var(--saci-text) !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    font-size: 0.8rem !important;
+    line-height: 1.4 !important;
+}
+
+/* Caller Info */
+.saci-caller-info {
+    font-size: 0.85rem;
+    background: transparent !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.saci-caller-file {
+    font-family: 'Courier New', monospace;
+    color: var(--saci-text);
+    margin-bottom: 2px;
+    background: transparent !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+.saci-caller-method {
+    font-size: 0.75rem;
+    color: var(--saci-text-muted);
+    background: transparent !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    margin-bottom: 3px;
+}
+
+.saci-caller-connection {
+    font-size: 0.7rem;
+    color: var(--saci-text-muted);
+    background: transparent !important;
+    margin-top: 2px;
+    opacity: 0.8;
+}
+
+.saci-db-driver {
+    font-weight: 600;
+    color: #68d391;
+}
+
+.saci-db-connection {
+    font-family: 'Courier New', monospace;
+}
+
+/* Duplicates Section */
+.saci-duplicates-section {
+    margin-top: 12px;
+    padding: 10px;
+    background: var(--saci-bg-subtle);
+    border-radius: 3px;
+}
+
+.saci-section-title {
+    margin: 0 0 8px 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--saci-text);
+}
+
+.saci-table-duplicates {
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+.saci-table-duplicates td {
+    padding: 6px 8px;
+}
+
+.saci-table-duplicates code {
+    font-size: 0.85rem;
+}
+
+/* Badge variants */
+.saci-badge-danger {
+    background: #ef4444;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 6px;
+}
+

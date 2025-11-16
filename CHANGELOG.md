@@ -106,3 +106,34 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 - Prevent duplicate bar injection (guards for existing bar and Saci internal routes).
 - Restore expanded variable dumps after refresh (including inline sections in Request/Route).
 
+## [2.4.0] - 2025-11-16
+### Added
+- **DatabaseCollector**: Comprehensive SQL query tracking and performance analysis
+  - All executed queries with bindings, execution time, and connection info
+  - **N+1 Detection**: Automatically identifies N+1 query patterns (3+ similar queries)
+  - **Duplicate Finder**: Highlights queries executed multiple times
+  - **Slow Query Highlighting**: Flags queries taking > 100ms in orange
+  - **Stack Traces**: Shows exactly where each query was called from your code
+  - **Smart Filters**: Search queries, filter by type (SELECT/INSERT/UPDATE/DELETE), show only slow queries
+- Database tab with professional UI matching existing tabs
+- Query bindings toggle for detailed parameter inspection
+- N+1 pattern examples with expandable details
+- Duplicate queries summary section
+- Database statistics in header (query count, total time, N+1 alerts)
+
+### Configuration
+```env
+SACI_COLLECTOR_DATABASE=true   # Enable/disable database collector (default: true)
+```
+
+### Performance
+- Zero overhead when collector is disabled
+- Efficient event listeners using Laravel's QueryExecuted event
+- Smart filtering with virtual scrolling for large query lists
+- Configurable thresholds via class constants
+
+### Notes
+- Detects N+1 patterns by normalizing queries and identifying repetitions (≥3 similar queries)
+- Provides actionable insights with code locations for easy debugging
+- Integrates seamlessly with existing Saci UI and themes
+

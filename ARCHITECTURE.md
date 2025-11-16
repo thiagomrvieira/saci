@@ -148,6 +148,17 @@ Saci follows Laravel's best practices and modern PHP patterns, implementing a cl
 - **Delegates to**: Support\LogCollector, LogProcessor
 - **Data**: Log entries with level, message, context, timestamp
 
+#### **DatabaseCollector**
+- **Responsibility**: Collects SQL queries with performance analysis
+- **Features**:
+  - N+1 query pattern detection
+  - Duplicate query identification
+  - Slow query highlighting (> 100ms)
+  - Stack trace for each query
+  - Binding resolution and formatting
+- **Data**: Query list, execution times, connections, slow queries, duplicates, N+1 patterns
+- **Dependencies**: Laravel's QueryExecuted event listener
+
 ### Legacy Adapters
 
 #### **TemplateTracker**
@@ -273,7 +284,6 @@ See `src/Collectors/README.md` for detailed guide.
 ## Future Enhancements
 
 - **Additional Collectors**:
-  - DatabaseCollector (queries, N+1 detection)
   - HttpClientCollector (external API calls)
   - CacheCollector (cache operations)
   - QueueCollector (dispatched jobs)

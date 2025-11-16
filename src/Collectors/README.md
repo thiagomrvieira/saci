@@ -184,6 +184,53 @@ Collects application logs during request.
 ]
 ```
 
+### DatabaseCollector
+Collects SQL queries with performance analysis and pattern detection.
+
+**Data Structure:**
+```php
+[
+    'queries' => [
+        [
+            'sql' => 'SELECT * FROM users WHERE id = ?',
+            'bindings' => [1],
+            'time' => 45.23,
+            'connection' => 'mysql',
+            'driver' => 'MySQL',
+            'database' => 'app_db',
+            'caller' => [
+                'file' => '/app/Controllers/UserController.php',
+                'line' => 42,
+                'class' => 'App\\Controllers\\UserController',
+                'function' => 'show',
+            ],
+            'is_slow' => false,
+        ],
+    ],
+    'total_queries' => 15,
+    'total_time' => 234.56,
+    'connections' => ['mysql', 'pgsql'],
+    'slow_queries' => [...],              // Queries > 100ms
+    'duplicate_queries' => [...],         // Same SQL executed multiple times
+    'possible_n_plus_one' => [...],       // Detected N+1 patterns
+]
+```
+
+**Features:**
+- **N+1 Detection**: Automatically identifies N+1 query patterns (3+ similar queries)
+- **Duplicate Finder**: Spots queries executed multiple times
+- **Slow Query Highlighting**: Flags queries taking > 100ms
+- **Stack Traces**: Shows where each query was called from
+- **Binding Resolution**: Formats bindings for easy reading
+
+**Configuration:**
+```php
+// In config/saci.php or .env
+'collectors' => [
+    'database' => env('SACI_COLLECTOR_DATABASE', true),
+],
+```
+
 ## Best Practices
 
 1. **Single Responsibility**: Each collector should focus on one type of data
