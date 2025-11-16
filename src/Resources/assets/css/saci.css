@@ -593,12 +593,12 @@ th.saci-col-level { text-align: left; }
 }
 
 /* Symfony VarDumper colorized dump (headers removed), keep readable palette */
-#saci .sf-dump { 
+#saci .sf-dump {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    color: #e5e7eb; 
-    font: 12px/1.4 Menlo, Consolas, monospace; 
+    color: #e5e7eb;
+    font: 12px/1.4 Menlo, Consolas, monospace;
     overflow: auto;
 }
 #saci .sf-dump span.sf-dump-key { color: #93c5fd; }
@@ -1098,6 +1098,9 @@ th.saci-col-level { text-align: left; }
     margin-top: 3px;
     font-size: 0.75rem;
     color: var(--saci-text-muted);
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 /* Database Filters */
@@ -1222,22 +1225,25 @@ th.saci-col-level { text-align: left; }
     margin-top: 4px;
     padding: 2px 6px;
     font-size: 0.75rem;
-    background: var(--saci-bg);
-    border: 1px solid var(--saci-border);
+    background: var(--saci-bg) !important;
+    border: 1px solid var(--saci-border) !important;
+    box-shadow: none !important;
     border-radius: 2px;
     cursor: pointer;
-    color: var(--saci-text);
+    color: var(--saci-text) !important;
     font-family: system-ui, -apple-system, sans-serif;
 }
 
 .saci-btn-toggle-bindings:hover {
-    background: var(--saci-bg-hover);
+    background: var(--saci-bg-hover) !important;
 }
 
 .saci-query-bindings {
     margin-top: 4px;
     padding: 6px 8px;
     background: var(--saci-bg-subtle) !important;
+    border: none !important;
+    box-shadow: none !important;
     border-radius: 2px;
     font-size: 0.8rem;
 }
@@ -1246,12 +1252,18 @@ th.saci-col-level { text-align: left; }
     display: inline !important;
     visibility: visible !important;
     opacity: 1 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .saci-query-bindings pre {
     margin: 0 !important;
     padding: 0 !important;
     font-family: 'Courier New', monospace !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     white-space: pre-wrap !important;
     word-break: break-all !important;
     background: transparent !important;
