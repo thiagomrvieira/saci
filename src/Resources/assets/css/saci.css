@@ -568,8 +568,39 @@ th.saci-col-level { text-align: left; }
     border-color: transparent transparent rgba(0,0,0,0.92) transparent;
 }
 
+/* Dump containers - ensure no borders and transparent background */
+#saci .saci-dump,
+#saci .saci-dump-content,
+#saci .saci-dump-inline {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+/* Value row TD - ensure no borders */
+#saci .saci-value-row td {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Preview cells - ensure no unwanted borders */
+#saci .saci-preview {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
 /* Symfony VarDumper colorized dump (headers removed), keep readable palette */
-#saci .sf-dump { background: transparent; color: #e5e7eb; font: 12px/1.4 Menlo, Consolas, monospace; overflow: auto; }
+#saci .sf-dump { 
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #e5e7eb; 
+    font: 12px/1.4 Menlo, Consolas, monospace; 
+    overflow: auto;
+}
 #saci .sf-dump span.sf-dump-key { color: #93c5fd; }
 #saci .sf-dump .sf-dump-str { color: #86efac; }
 #saci .sf-dump .sf-dump-num { color: #fca5a5; }
