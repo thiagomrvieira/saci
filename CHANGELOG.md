@@ -144,7 +144,7 @@ SACI_COLLECTOR_DATABASE=true   # Enable/disable database collector (default: tru
   - Query bindings in Database tab fully protected
   - Inline dumps in Logs tab fully protected
   - All dumps use `!important` rules for background, border, and box-shadow
-  
+
 ### Documentation
 - **Support Layer**: Complete documentation for all 8 support components
   - DumpManager: Symfony VarDumper integration details

@@ -77,6 +77,11 @@ class TemplateTracker
 
         $relativePath = $this->toRelativePath($path);
 
+        // Skip tracking Saci's own views to prevent recursion
+        if ($this->isSaciView($relativePath)) {
+            return;
+        }
+
         // Store start time for this view
         $this->viewStartTimes->put($relativePath, microtime(true));
     }
@@ -93,6 +98,11 @@ class TemplateTracker
         }
 
         $relativePath = $this->toRelativePath($path);
+
+        // Skip tracking Saci's own views to prevent recursion
+        if ($this->isSaciView($relativePath)) {
+            return;
+        }
 
         if (SaciConfig::isPerformanceTrackingEnabled()) {
             $endTime = microtime(true);
@@ -135,6 +145,15 @@ class TemplateTracker
     protected function toRelativePath(string $absolutePath): string
     {
         return str_replace(base_path() . '/', '', $absolutePath);
+    }
+
+    /**
+     * Check if the view is from Saci package to prevent recursion.
+     */
+    protected function isSaciView(string $relativePath): bool
+    {
+        return str_contains($relativePath, 'vendor/thiago-vieira/saci/src/Resources/views')
+            || str_contains($relativePath, '/saci/src/Resources/views');
     }
 
     /**

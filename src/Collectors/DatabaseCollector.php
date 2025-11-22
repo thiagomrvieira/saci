@@ -99,7 +99,7 @@ class DatabaseCollector extends BaseCollector
         $connectionInfo = $this->getConnectionInfo($connection);
 
         $this->queries[] = [
-            'sql' => $sql,
+            'sql' => $this->sqlToString($sql),
             'bindings' => $this->formatBindings($bindings),
             'time' => round($time, 2),
             'connection' => $connection,
@@ -114,11 +114,26 @@ class DatabaseCollector extends BaseCollector
     }
 
     /**
+     * Convert SQL to string (handles Query\Expression objects)
+     */
+    protected function sqlToString($sql): string
+    {
+        if ($sql instanceof \Illuminate\Database\Query\Expression) {
+            return $sql->getValue();
+        }
+        return (string) $sql;
+    }
+
+    /**
      * Format bindings for display
      */
     protected function formatBindings(array $bindings): array
     {
         return array_map(function ($binding) {
+            // Handle Query\Expression objects in bindings
+            if ($binding instanceof \Illuminate\Database\Query\Expression) {
+                return $this->sqlToString($binding);
+            }
             if ($binding instanceof \DateTime) {
                 return $binding->format('Y-m-d H:i:s');
             }
