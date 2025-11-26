@@ -1,0 +1,48 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php: ['8.0', '8.1', '8.2', '8.3']
+        laravel: ['9.*', '10.*', '11.*', '12.*']
+        exclude:
+          - php: '8.0'
+            laravel: '11.*'
+          - php: '8.0'
+            laravel: '12.*'
+
+    name: PHP ${{ matrix.php }} - Laravel ${{ matrix.laravel }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
+          coverage: xdebug
+
+      - name: Install dependencies
+        run: |
+          composer install --prefer-dist --no-interaction
+
+      - name: Execute tests
+        run: vendor/bin/pest --colors=always
+
+      - name: Execute tests with coverage
+        if: matrix.php == '8.3' && matrix.laravel == '12.*'
+        run: vendor/bin/pest --coverage --min=80
+
+
+

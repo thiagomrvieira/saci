@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         failOnRisky="true"
+         failOnWarning="true"
+         cacheDirectory=".phpunit.cache"
+>
+    <testsuites>
+        <testsuite name="Saci Test Suite">
+            <directory>tests</directory>
+        </testsuite>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory>src</directory>
+        </include>
+        <exclude>
+            <directory>src/Resources</directory>
+        </exclude>
+    </source>
+
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_KEY" value="base64:2fl+Ktvkujq2LvT0oNXs0MQY89oLvp8bKLhbJJXl3bA="/>
+        <env name="APP_DEBUG" value="true"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="CACHE_DRIVER" value="array"/>
+        <env name="DB_CONNECTION" value="testing"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+
+        <!-- Saci Configuration -->
+        <env name="SACI_ENABLED" value="true"/>
+        <env name="SACI_ALLOW_AJAX" value="false"/>
+        <env name="SACI_THEME" value="default"/>
+        <env name="SACI_TRANSPARENCY" value="1.0"/>
+
+        <!-- Saci Collectors -->
+        <env name="SACI_COLLECTOR_VIEWS" value="true"/>
+        <env name="SACI_COLLECTOR_REQUEST" value="true"/>
+        <env name="SACI_COLLECTOR_ROUTE" value="true"/>
+        <env name="SACI_COLLECTOR_AUTH" value="true"/>
+        <env name="SACI_COLLECTOR_LOGS" value="true"/>
+        <env name="SACI_COLLECTOR_DATABASE" value="true"/>
+    </php>
+
+    <coverage>
+        <report>
+            <html outputDirectory="coverage/html"/>
+            <text outputFile="coverage/coverage.txt"/>
+            <clover outputFile="coverage/clover.xml"/>
+        </report>
+    </coverage>
+
+    <logging>
+        <junit outputFile="coverage/junit.xml"/>
+    </logging>
+</phpunit>

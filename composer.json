@@ -9,6 +9,11 @@
             "ThiagoVieira\\Saci\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "ThiagoVieira\\Saci\\Tests\\": "tests/"
+        }
+    },
     "require": {
         "php": "^8.0|^8.1|^8.2|^8.3",
         "laravel/framework": "^9.0|^10.0|^11.0|^12.0"
@@ -23,6 +28,23 @@
     "scripts": {
         "saci:minify": [
             "@php bin/minify.php"
+        ],
+        "test": [
+            "@php vendor/bin/pest"
+        ],
+        "test:unit": [
+            "@php vendor/bin/pest --testsuite=Unit"
+        ],
+        "test:feature": [
+            "@php vendor/bin/pest --testsuite=Feature"
+        ],
+        "test:coverage": [
+            "Composer\\Config::disableProcessTimeout",
+            "XDEBUG_MODE=coverage php vendor/bin/pest --coverage --min=80"
+        ],
+        "test:coverage-html": [
+            "Composer\\Config::disableProcessTimeout",
+            "XDEBUG_MODE=coverage php vendor/bin/pest --coverage --coverage-html=coverage/html"
         ]
     },
     "extra": {
@@ -30,6 +52,16 @@
             "providers": [
                 "ThiagoVieira\\Saci\\SaciServiceProvider"
             ]
+        }
+    },
+    "require-dev": {
+        "pestphp/pest": "*",
+        "orchestra/testbench": "*",
+        "mockery/mockery": "*"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
         }
     }
 }

@@ -107,7 +107,7 @@ class SaciConfig
      */
     public static function isPerformanceTrackingEnabled(): bool
     {
-        return self::get('track_performance', true);
+        return self::get('performance_tracking', true);
     }
 
     /**

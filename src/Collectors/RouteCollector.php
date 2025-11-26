@@ -107,7 +107,8 @@ class RouteCollector extends BaseCollector
         $parameters = method_exists($route, 'parameters') ? (array) $route->parameters() : [];
         $action = method_exists($route, 'getAction') ? (array) $route->getAction() : [];
         $compiled = method_exists($route, 'getCompiled') ? $route->getCompiled() : null;
-        $where = $action['where'] ?? [];
+        // Access where constraints from the public wheres property
+        $where = property_exists($route, 'wheres') ? (array) $route->wheres : [];
 
         $this->data = [
             'name' => method_exists($route, 'getName') ? $route->getName() : null,
