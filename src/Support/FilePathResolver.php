@@ -71,7 +71,7 @@ class FilePathResolver
 
             // Laravel includes original path in compiled file comment
             // Pattern: /* /full/path/resources/views/...blade.php */
-            if (preg_match('#(/.*?/resources/views/[^\n\r*]+?\.blade\.php)#', $content, $matches)) {
+            if (preg_match('#\*\s*(/.*?/resources/views/[^\n\r*]+?\.blade\.php)#', $content, $matches)) {
                 $resolved = str_replace('\\\\', '/', $matches[1]);
                 return $this->bladeSourceCache[$compiledPath] = $resolved;
             }
