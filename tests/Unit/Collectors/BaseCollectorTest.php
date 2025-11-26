@@ -353,3 +353,6 @@ describe('BaseCollector Configuration', function () {
     });
 });
 
+// Note: BaseCollector's empty hook methods (doStart, doCollect, doReset) 
+// at lines 107-115 are intentionally empty and covered by subclass tests.
+
