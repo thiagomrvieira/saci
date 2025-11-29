@@ -1,5 +1,10 @@
 # Saci 🔍
 
+[![Tests](https://github.com/thiago-vieira/saci/actions/workflows/tests.yml/badge.svg)](https://github.com/thiago-vieira/saci/actions/workflows/tests.yml)
+[![Code Coverage](https://codecov.io/gh/thiago-vieira/saci/branch/main/graph/badge.svg)](https://codecov.io/gh/thiago-vieira/saci)
+[![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://www.php.net/)
+[![Laravel](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x-FF2D20?logo=laravel)](https://laravel.com/)
+
 > A modern, zero-config Laravel debug bar that actually makes debugging fun (yes, really).
 
 Track your Blade views, inspect requests, and peek into routes with a sleek, persistent UI that won't mess with your styles. Think of it as X-ray vision for your Laravel app.

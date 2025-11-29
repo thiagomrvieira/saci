@@ -1,0 +1,36 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": [
+            "src"
+        ],
+        "excludes": [
+            "SaciInfo.php"
+        ]
+    },
+    "logs": {
+        "text": "infection-log.txt",
+        "html": "infection-report.html",
+        "summary": "infection-summary.log",
+        "json": "infection-log.json"
+    },
+    "mutators": {
+        "@default": true,
+        "@function_signature": false,
+        "global-ignoreSourceCodeByRegex": [
+            "// Skip mutation",
+            "@codeCoverageIgnore"
+        ]
+    },
+    "minMsi": 75,
+    "minCoveredMsi": 85,
+    "timeout": 10,
+    "testFramework": "phpunit",
+    "testFrameworkOptions": "--exclude-group=feature",
+    "phpUnit": {
+        "configDir": "."
+    },
+    "threads": 4,
+    "bootstrap": "vendor/autoload.php"
+}
+
