@@ -339,9 +339,73 @@ describe('DumpStorage Configuration', function () {
         expect($storage->getHtml($requestId, 'dump1'))->toBeNull();
     });
 
-    // Note: Lines 108-109 and 117-118 (exception handling in lastModified/filesize)
-    // are difficult to test in isolation as they require mocking Storage facade deeply.
-    // These are covered indirectly through integration tests where disk operations may fail.
+    it('handles mtime exception gracefully', function () {
+        // Create a mock object with lastModified method that throws exception
+        $disk = new class {
+            public function lastModified($path) {
+                throw new \RuntimeException('Disk error');
+            }
+        };
+
+        // Use reflection to test the protected method
+        $reflection = new \ReflectionClass(DumpStorage::class);
+        $method = $reflection->getMethod('mtime');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($this->storage, $disk, 'test/path');
+
+        // Should return null on exception (line 108-109)
+        expect($result)->toBeNull();
+    });
+
+    it('handles filesize exception gracefully', function () {
+        // Create a mock object with size method that throws exception
+        $disk = new class {
+            public function size($path) {
+                throw new \RuntimeException('Disk error');
+            }
+        };
+
+        // Use reflection to test the protected method
+        $reflection = new \ReflectionClass(DumpStorage::class);
+        $method = $reflection->getMethod('filesize');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($this->storage, $disk, 'test/path');
+
+        // Should return null on exception (line 117-118)
+        expect($result)->toBeNull();
+    });
+
+    it('handles disk without lastModified method', function () {
+        // Create a mock disk without lastModified method
+        $disk = Mockery::mock('stdClass');
+
+        // Use reflection to test the protected method
+        $reflection = new \ReflectionClass(DumpStorage::class);
+        $method = $reflection->getMethod('mtime');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($this->storage, $disk, 'test/path');
+
+        // Should return null if method doesn't exist
+        expect($result)->toBeNull();
+    });
+
+    it('handles disk without size method', function () {
+        // Create a mock disk without size method
+        $disk = Mockery::mock('stdClass');
+
+        // Use reflection to test the protected method
+        $reflection = new \ReflectionClass(DumpStorage::class);
+        $method = $reflection->getMethod('filesize');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($this->storage, $disk, 'test/path');
+
+        // Should return null if method doesn't exist
+        expect($result)->toBeNull();
+    });
 });
 
 

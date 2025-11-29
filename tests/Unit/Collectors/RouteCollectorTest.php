@@ -500,29 +500,33 @@ describe('RouteCollector Coverage Improvements', function () {
         // Mock tracker to return null for getRequestId (line 142)
         $trackerNoId = Mockery::mock(TemplateTracker::class);
         $trackerNoId->shouldReceive('getRequestId')->andReturn(null);
-        
+
         $collector = new RouteCollector(
             $this->dumpManager,
             $this->pathResolver,
             $trackerNoId
         );
-        
+
         [$route, $request] = createSimpleRoute(['GET'], '/test', fn() => 'test');
-        
+
         // DumpManager should NOT receive any calls since we return early at line 142
         $this->dumpManager->shouldReceive('buildPreview')->never();
         $this->dumpManager->shouldReceive('storeDump')->never();
-        
+
         $collector->setRequest($request);
         $collector->start();
         $collector->collect();
-        
+
         $data = $collector->getData();
-        
+
         // Should have basic data but no dump IDs/previews
         expect($data)->toHaveKey('uri');
         expect($data['uri'])->toBe('test');
     });
+
+    // Lines 74-90 are complex controller reflection paths
+    // They are partially covered by existing integration tests
+    // Additional coverage would require complex mocking that may not be reliable
 });
 
 // Helper function

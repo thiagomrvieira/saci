@@ -307,6 +307,88 @@ describe('Edge Cases', function () {
         expect($result)->toBeNull();
     });
 
+    it('handles file with invalid encoding causing throwable', function () {
+        // Create a temp file with content that might cause issues during preg_match
+        $tempFile = sys_get_temp_dir() . '/saci_test_blade_' . uniqid() . '.php';
+
+        // Write some valid PHP but with patterns that could trigger edge cases
+        file_put_contents($tempFile, "<?php\n/* Complex \x00 binary \xFF content */\n");
+
+        $result = $this->resolver->resolveBladeSource($tempFile);
+
+        // Should handle gracefully
+        expect($result)->toBeNull();
+
+        // Cleanup
+        @unlink($tempFile);
+    });
+
+    it('handles permission denied file read', function () {
+        // Create a file with no read permissions
+        $tempFile = sys_get_temp_dir() . '/saci_no_read_' . uniqid() . '.php';
+        file_put_contents($tempFile, '<?php /* test */');
+        chmod($tempFile, 0000); // Remove all permissions
+
+        $result = $this->resolver->resolveBladeSource($tempFile);
+
+        expect($result)->toBeNull();
+
+        // Cleanup
+        @chmod($tempFile, 0644);
+        @unlink($tempFile);
+    });
+
+    it('handles symlink to non-existent file', function () {
+        $target = sys_get_temp_dir() . '/saci_nonexistent_' . uniqid() . '.php';
+        $link = sys_get_temp_dir() . '/saci_symlink_' . uniqid() . '.php';
+
+        // Create symlink to non-existent target (if supported)
+        if (function_exists('symlink')) {
+            @symlink($target, $link);
+
+            $result = $this->resolver->resolveBladeSource($link);
+
+            expect($result)->toBeNull();
+
+            @unlink($link);
+        } else {
+            // Skip on systems without symlink support
+            expect(true)->toBeTrue();
+        }
+    });
+
+    it('handles file with malformed content causing preg_match errors', function () {
+        // Create a file with extremely large content that might cause issues
+        $tempFile = sys_get_temp_dir() . '/saci_huge_' . uniqid() . '.php';
+
+        // Create a file with repetitive patterns that might cause backtracking
+        $hugeContent = str_repeat('/* ' . str_repeat('a/', 1000) . ' */', 10);
+        file_put_contents($tempFile, $hugeContent);
+
+        $result = $this->resolver->resolveBladeSource($tempFile);
+
+        // Should handle gracefully (might trigger catch block or just return null)
+        expect($result)->toBeNull();
+
+        @unlink($tempFile);
+    });
+
+    it('handles file with circular path references', function () {
+        // Create a temp file with a comment that looks like a blade path but has issues
+        $tempFile = sys_get_temp_dir() . '/saci_circular_' . uniqid() . '.php';
+
+        // Malformed comment that might cause issues during parsing
+        $content = "<?php\n/* /some/path/resources/views/../../../etc/passwd.blade.php */\n";
+        file_put_contents($tempFile, $content);
+
+        $result = $this->resolver->resolveBladeSource($tempFile);
+
+        // Should extract the path even if it's weird
+        expect($result)->toBeString();
+
+        @unlink($tempFile);
+    });
+
     it('caches errors for failed file reads', function () {
         $invalidPath = '/impossible/path.php';
 

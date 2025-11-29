@@ -180,6 +180,27 @@ describe('Performance Tracking', function () {
         expect($templates[0])->not->toHaveKey('duration');
     });
 
+    it('skips trackViewStart when performance tracking is disabled', function () {
+        config(['saci.performance_tracking' => false]);
+
+        $reflection = new \ReflectionClass($this->tracker);
+        $startMethod = $reflection->getMethod('trackViewStart');
+        $startMethod->setAccessible(true);
+
+        // Call trackViewStart - should return early (line 69)
+        $startMethod->invoke($this->tracker, $this->view);
+
+        // Verify no timing was stored
+        $templates = $this->tracker->getTemplates();
+
+        // Template might exist but without timing data
+        if (count($templates) > 0) {
+            expect($templates[0])->not->toHaveKey('duration');
+        } else {
+            expect($templates)->toBeEmpty();
+        }
+    });
+
     it('calculates duration in milliseconds', function () {
         config(['saci.performance_tracking' => true]);
 
