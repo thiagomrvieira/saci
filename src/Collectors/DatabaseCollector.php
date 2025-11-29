@@ -119,7 +119,11 @@ class DatabaseCollector extends BaseCollector
     protected function sqlToString($sql): string
     {
         if ($sql instanceof \Illuminate\Database\Query\Expression) {
-            return $sql->getValue();
+            // Access the protected $value property via reflection
+            $reflection = new \ReflectionClass($sql);
+            $property = $reflection->getProperty('value');
+            $property->setAccessible(true);
+            return (string) $property->getValue($sql);
         }
         return (string) $sql;
     }

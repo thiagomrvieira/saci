@@ -353,6 +353,24 @@ describe('BaseCollector Configuration', function () {
     });
 });
 
-// Note: BaseCollector's empty hook methods (doStart, doCollect, doReset) 
-// at lines 107-115 are intentionally empty and covered by subclass tests.
+describe('BaseCollector Empty Hook Coverage', function () {
+    it('covers empty hook methods when not overridden', function () {
+        // Create a minimal collector that DOES NOT override the hooks
+        $minimalCollector = new class extends BaseCollector {
+            public function getName(): string { return 'minimal'; }
+            public function getLabel(): string { return 'Minimal'; }
+            
+            // NOT overriding doStart, doCollect, doReset
+            // This will execute the empty implementations in BaseCollector
+        };
+
+        // These calls will execute the empty hook methods
+        $minimalCollector->start();
+        $minimalCollector->collect();
+        $minimalCollector->reset();
+
+        // Verify the lifecycle still works even with empty hooks
+        expect($minimalCollector->getData())->toBeEmpty();
+    });
+});
 

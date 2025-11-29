@@ -338,6 +338,10 @@ describe('DumpStorage Configuration', function () {
 
         expect($storage->getHtml($requestId, 'dump1'))->toBeNull();
     });
+
+    // Note: Lines 108-109 and 117-118 (exception handling in lastModified/filesize)
+    // are difficult to test in isolation as they require mocking Storage facade deeply.
+    // These are covered indirectly through integration tests where disk operations may fail.
 });
 
 

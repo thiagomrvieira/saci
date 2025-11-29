@@ -114,34 +114,34 @@ describe('Blade Source Resolution', function () {
 
     it('caches blade source resolution results', function () {
         $compiledPath = '/non/existent/compiled.php';
-        
+
         // First call
         $result1 = $this->resolver->resolveBladeSource($compiledPath);
-        
+
         // Second call should use cache (hits line 59)
         $result2 = $this->resolver->resolveBladeSource($compiledPath);
-        
+
         expect($result1)->toBeNull();
         expect($result2)->toBeNull();
         expect($result1)->toBe($result2); // Same cached value
     });
-    
+
     it('caches successful blade source resolution', function () {
         $tempFile = sys_get_temp_dir() . '/test_cache_' . uniqid() . '.php';
         $sourcePath = base_path('resources/views/cached.blade.php');
-        
+
         file_put_contents($tempFile, "<?php /* {$sourcePath} */ ?>\n<html>Content</html>");
-        
+
         // First call - miss cache
         $result1 = $this->resolver->resolveBladeSource($tempFile);
-        
+
         // Second call - hit cache (line 59)
         $result2 = $this->resolver->resolveBladeSource($tempFile);
-        
+
         expect($result1)->toBe(str_replace('\\', '/', $sourcePath));
         expect($result2)->toBe(str_replace('\\', '/', $sourcePath));
         expect($result1)->toBe($result2); // Same instance from cache
-        
+
         unlink($tempFile);
     });
 
@@ -276,28 +276,46 @@ describe('Edge Cases', function () {
     it('handles unreadable file gracefully in blade resolution', function () {
         // Try to resolve a directory (unreadable as file)
         $result = $this->resolver->resolveBladeSource(sys_get_temp_dir());
-        
+
         expect($result)->toBeNull();
     });
-    
+
     it('handles file read errors gracefully', function () {
         // Use a path that will cause fopen to fail (line 92)
         $invalidPath = '/dev/null/impossible/path/file.php';
-        
+
         $result = $this->resolver->resolveBladeSource($invalidPath);
-        
+
         expect($result)->toBeNull();
     });
-    
+
+    it('returns null when fopen fails on valid-looking path', function () {
+        // Create a path that looks valid but will fail fopen (covers line 92)
+        $nonExistentFile = sys_get_temp_dir() . '/saci_test_nonexistent_' . uniqid() . '.php';
+        
+        $result = $this->resolver->resolveBladeSource($nonExistentFile);
+
+        expect($result)->toBeNull();
+    });
+
+    it('handles throwable exceptions in blade resolution', function () {
+        // Use a directory path instead of file (covers line 78-79)
+        $dirPath = sys_get_temp_dir();
+        
+        $result = $this->resolver->resolveBladeSource($dirPath);
+
+        expect($result)->toBeNull();
+    });
+
     it('caches errors for failed file reads', function () {
         $invalidPath = '/impossible/path.php';
-        
+
         // First call - triggers error and caches null
         $result1 = $this->resolver->resolveBladeSource($invalidPath);
-        
+
         // Second call - returns cached null (line 59)
         $result2 = $this->resolver->resolveBladeSource($invalidPath);
-        
+
         expect($result1)->toBeNull();
         expect($result2)->toBeNull();
     });

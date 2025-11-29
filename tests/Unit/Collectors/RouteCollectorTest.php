@@ -495,8 +495,35 @@ describe('Controller and Closure Reflection Edge Cases', function () {
     });
 });
 
-// Note: Additional coverage improvements for RouteCollector (lines 74-90, 142)
-// would require complex route binding scenarios that are better tested in integration tests.
+describe('RouteCollector Coverage Improvements', function () {
+    it('skips dump generation when tracker returns null requestId', function () {
+        // Mock tracker to return null for getRequestId (line 142)
+        $trackerNoId = Mockery::mock(TemplateTracker::class);
+        $trackerNoId->shouldReceive('getRequestId')->andReturn(null);
+        
+        $collector = new RouteCollector(
+            $this->dumpManager,
+            $this->pathResolver,
+            $trackerNoId
+        );
+        
+        [$route, $request] = createSimpleRoute(['GET'], '/test', fn() => 'test');
+        
+        // DumpManager should NOT receive any calls since we return early at line 142
+        $this->dumpManager->shouldReceive('buildPreview')->never();
+        $this->dumpManager->shouldReceive('storeDump')->never();
+        
+        $collector->setRequest($request);
+        $collector->start();
+        $collector->collect();
+        
+        $data = $collector->getData();
+        
+        // Should have basic data but no dump IDs/previews
+        expect($data)->toHaveKey('uri');
+        expect($data['uri'])->toBe('test');
+    });
+});
 
 // Helper function
 function mockRouteDumpOperations(): void
