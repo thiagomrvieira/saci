@@ -359,7 +359,7 @@ describe('BaseCollector Empty Hook Coverage', function () {
         $minimalCollector = new class extends BaseCollector {
             public function getName(): string { return 'minimal'; }
             public function getLabel(): string { return 'Minimal'; }
-            
+
             // NOT overriding doStart, doCollect, doReset
             // This will execute the empty implementations in BaseCollector
         };

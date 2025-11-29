@@ -593,14 +593,14 @@ describe('DatabaseCollector Query Expression Handling', function () {
 
         // Create Expression via DB::raw
         $expression = DB::raw('NOW()');
-        
+
         // Create a proper connection mock
         $connection = Mockery::mock(\Illuminate\Database\Connection::class);
         $connection->shouldReceive('getName')->andReturn('mysql');
         $connection->shouldReceive('getDatabaseName')->andReturn('test_db');
         $connection->shouldReceive('getConfig')->with('driver')->andReturn('mysql');
         $connection->shouldReceive('prepareBindings')->andReturn([]);
-        
+
         Event::dispatch(new QueryExecuted($expression, [], 10, $connection));
 
         $this->collector->collect();
@@ -615,14 +615,14 @@ describe('DatabaseCollector Query Expression Handling', function () {
 
         // Create Expression via DB::raw
         $expression = DB::raw('CURRENT_DATE');
-        
+
         // Create a proper connection mock
         $connection = Mockery::mock(\Illuminate\Database\Connection::class);
         $connection->shouldReceive('getName')->andReturn('mysql');
         $connection->shouldReceive('getDatabaseName')->andReturn('test_db');
         $connection->shouldReceive('getConfig')->with('driver')->andReturn('mysql');
         $connection->shouldReceive('prepareBindings')->with([$expression])->andReturn([$expression]);
-        
+
         Event::dispatch(new QueryExecuted('SELECT * FROM logs WHERE date = ?', [$expression], 10, $connection));
 
         $this->collector->collect();
@@ -658,10 +658,10 @@ describe('DatabaseCollector Event Forgetting', function () {
         $eventSpy = Event::fake();
 
         $this->collector->start();
-        
+
         // Dispatch a query to ensure listener is active
         Event::dispatch(new QueryExecuted('SELECT 1', [], 1, DB::connection()));
-        
+
         // Reset should forget the listener
         $this->collector->reset();
 

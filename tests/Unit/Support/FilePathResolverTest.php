@@ -292,7 +292,7 @@ describe('Edge Cases', function () {
     it('returns null when fopen fails on valid-looking path', function () {
         // Create a path that looks valid but will fail fopen (covers line 92)
         $nonExistentFile = sys_get_temp_dir() . '/saci_test_nonexistent_' . uniqid() . '.php';
-        
+
         $result = $this->resolver->resolveBladeSource($nonExistentFile);
 
         expect($result)->toBeNull();
@@ -301,7 +301,7 @@ describe('Edge Cases', function () {
     it('handles throwable exceptions in blade resolution', function () {
         // Use a directory path instead of file (covers line 78-79)
         $dirPath = sys_get_temp_dir();
-        
+
         $result = $this->resolver->resolveBladeSource($dirPath);
 
         expect($result)->toBeNull();

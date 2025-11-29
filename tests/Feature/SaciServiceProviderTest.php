@@ -82,12 +82,10 @@ describe('Service Registration', function () {
         expect($instance)->toBeInstanceOf(RequestValidator::class);
     });
 
-    it('registers RequestResources with backward compatibility', function () {
+    it('registers RequestResources', function () {
         $instance = $this->app->make(RequestResources::class);
 
-        // RequestResources is aliased to RequestResourcesAdapter for backward compatibility
-        expect($instance)->not->toBeNull();
-        expect($instance)->toBeObject();
+        expect($instance)->toBeInstanceOf(RequestResources::class);
     });
 });
 
