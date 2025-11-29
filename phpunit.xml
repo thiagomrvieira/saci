@@ -48,6 +48,8 @@
         <env name="SACI_COLLECTOR_DATABASE" value="true"/>
     </php>
 
+    <!-- Coverage is only generated when explicitly requested with XDEBUG_MODE=coverage -->
+    <!--
     <coverage>
         <report>
             <html outputDirectory="coverage/html"/>
@@ -55,6 +57,7 @@
             <clover outputFile="coverage/clover.xml"/>
         </report>
     </coverage>
+    -->
 
     <logging>
         <junit outputFile="coverage/junit.xml"/>
